@@ -192,18 +192,32 @@ class Board:
 
         return board, pieces
 
-    def print_board(self):
-        for row in range(8):
-            print(8 - row, end=" ")
-            for col in range(8):
-                val = self.board[row, col]
-                if val is not None:
-                    print(val, end=" ")
-                else:
-                    print("-", end=" ")
+    def print_board(self, perspective=WHITE):
+        if perspective == WHITE:
+            for row in range(8):
+                print(8 - row, end=" ")
+                for col in range(8):
+                    val = self.board[row, col]
+                    if val is not None:
+                        print(val, end=" ")
+                    else:
+                        print("-", end=" ")
+                print()
+            print("  a b c d e f g h")
             print()
-        print("  a b c d e f g h")
-        print()
+        else:
+            for row in reversed(range(8)):
+                print(8 - row, end=" ")
+                for col in reversed(range(8)):
+                    val = self.board[row, col]
+                    if val is not None:
+                        print(val, end=" ")
+                    else:
+                        print("-", end=" ")
+                print()
+            print("  h g f e d c b a")
+            print()
+
 
     def apply_move(self, move: Move):
         initial_loc = move.initial_loc
@@ -284,7 +298,7 @@ class Board:
                     if piece.square != Square.from_tuple((row, col)):
                         raise Exception("The board positions and the pieces' internal positions do not match")
 
-    def get(self, square):
+    def get(self, square) -> Piece:
         if type(square) == Square:
             return self.board[square.row, square.col]
         elif type(square) == str:
@@ -558,6 +572,8 @@ class GameRules:
 
         return False
 
+    # todo handle checkmate and stalemate
+
 
 class Game:
     def __init__(self):
@@ -576,18 +592,20 @@ class Game:
         move = self._correct_move(self.board, iMove)
 
         if move.piece_moved.color != self.turn:
-            print(f"It is not your turn!\n")
-            return
+            print("\nIt is not your turn!\n")
+            return False
 
         is_move_legal = GameRules.is_move_legal(self.board, move)
 
         if not is_move_legal:
-            print(f"{from_square} to {to_square} is an illegal move!\nTry Again!\n")
-            return
+            print(f"\n{from_square} to {to_square} is an illegal move!\nTry Again!\n")
+            return False
 
         self.board.apply_move(move)
         self.move_list.append(move)
         self.turn *= -1
+
+        return True
 
     @staticmethod
     def _correct_move(board: Board, move: Move) -> Move:
@@ -625,82 +643,5 @@ class Game:
         )
         self.board.apply_move(m)
 
-    def display(self):
-        self.board.print_board()
-
-
-# b = Board()
-#
-#
-# def correct_move(board: Board, move: Move) -> Move:
-#     initial_loc = move.initial_loc
-#     final_loc = move.final_loc
-#     piece_moved = move.piece_moved
-#     piece_captured: Piece = move.piece_captured
-#     promotion = move.promotion
-#
-#     if piece_moved is None:
-#         raise Exception("No piece selected to be moved")
-#     elif initial_loc == final_loc:
-#         raise Exception("The piece to be moved is not moving")
-#
-#     hdist = final_loc.col - initial_loc.col
-#     vdist = final_loc.row - initial_loc.row
-#
-#     if piece_moved.piece_type == PAWN:
-#         if board.en_passent[0] is True:
-#             if abs(hdist) == 1:
-#                 if vdist == -1 and piece_moved.color == WHITE and final_loc == board.en_passent[1] and board.en_passent[2].color == BLACK:
-#                     move = Move(initial_loc, final_loc, piece_moved, piece_captured=board.en_passent[2], promotion=promotion)
-#                 elif vdist == 1 and piece_moved.color == BLACK and final_loc == board.en_passent[1] and board.en_passent[2].color == WHITE:
-#                     move = Move(initial_loc, final_loc, piece_moved, piece_captured=board.en_passent[2], promotion=promotion)
-#
-#     return move
-#
-#
-# def move(f, t, p=None):
-#     m = Move(Square.from_name(f), Square.from_name(t), b.get(Square.from_name(f)), b.get(Square.from_name(t)), promotion=p)
-#     m = correct_move(b, m)
-#     legal = GameRules.is_move_legal(b, m)
-#
-#     if not legal:
-#         print(f"{f} to {t} is an illegal move!\nTry Again!\n")
-#         return
-#
-#     b.apply_move(m)
-#     b.print_board()
-#
-#
-# def force_move(f, t, p=None):
-#     m = Move(Square.from_name(f), Square.from_name(t), b.get(Square.from_name(f)), b.get(Square.from_name(t)), promotion=p)
-#     b.apply_move(m)
-#     b.verify()
-#     b.print_board()
-#
-#
-# move("e2", "e4")
-# move("e7", "e5")
-# move("g1", "f3")
-# move("b8", "c6")
-# move("f1", "b5")
-# move("a7", "a6")
-# move("e1", "g1")
-# move("d7", "d5")
-# move("c8", "d7")
-# move("d8", "e7")
-# move("e8", "c8")
-
-
-g = Game()
-g.move("e2", "e4")
-g.display()
-g.move("e7", "e5")
-g.display()
-g.move("g1", "f3")
-g.display()
-g.move("b8", "c6")
-g.display()
-g.move("f1", "b5")
-g.display()
-g.move("b5", "c6")
-g.display()
+    def display(self, perspective=WHITE):
+        self.board.print_board(perspective)
