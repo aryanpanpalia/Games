@@ -1,5 +1,5 @@
 import model
-from model import WHITE, BLACK
+from model import WHITE, GameRules, CHECKMATE, STALEMATE
 
 
 def is_valid_input(square_name: str):
@@ -34,6 +34,14 @@ def main():
             move_success = g.move(square_to_move_from, square_to_move_to)
 
         print()
+
+        if GameRules.check_if_game_ended(g) == CHECKMATE:
+            print(f"Checkmate! {color} won!")
+            running = False
+        elif GameRules.check_if_game_ended(g) == STALEMATE:
+            print("Stalemate!")
+            running = False
+
         turn *= -1
 
 

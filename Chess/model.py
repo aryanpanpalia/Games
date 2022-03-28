@@ -15,6 +15,10 @@ piece_types = [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING]
 WHITE = -1
 BLACK = 1
 
+STALEMATE = -1
+GAME_IN_PLAY = 0
+CHECKMATE = 1
+
 piece_colors = [WHITE, BLACK]
 
 
@@ -78,6 +82,15 @@ class Square(tuple):
         self.row = tup[0]
         self.col = tup[1]
         self.coords = tup
+
+    def get_diff(self, diff):
+        row = self.row + diff[0]
+        col = self.col + diff[1]
+        return Square.from_tuple((row, col))
+
+    @staticmethod
+    def is_valid(square):
+        return 0 <= square.row < 8 and 0 <= square.col < 8
 
     @classmethod
     def from_tuple(cls, tup: tuple):
@@ -217,7 +230,6 @@ class Board:
                 print()
             print("  h g f e d c b a")
             print()
-
 
     def apply_move(self, move: Move):
         initial_loc = move.initial_loc
@@ -504,10 +516,6 @@ class GameRules:
     def is_targeted(board, targeting_color, targeted_square: Square):
         targeting_pieces = [piece for piece in board.pieces if piece.color == targeting_color and piece.captured is False]
 
-        # targeted_piece_placeholder = Piece(PAWN, BLACK, targeted_square)
-        # if targeting_color == BLACK:
-        #     targeted_piece_placeholder.color = WHITE
-
         for piece in targeting_pieces:
             hdist = targeted_square.col - piece.square.col
             vdist = targeted_square.row - piece.square.row
@@ -572,13 +580,26 @@ class GameRules:
 
         return False
 
-    # todo handle checkmate and stalemate
+    @staticmethod
+    def check_if_game_ended(game):
+        moves = game.generate_legal_moves_for(game.turn)
+
+        if len(moves) == 0:
+            if game.turn == WHITE:
+                if GameRules.white_king_checked(game.board):
+                    return CHECKMATE
+                else:
+                    return STALEMATE
+            else:
+                if GameRules.black_king_checked(game.board):
+                    return CHECKMATE
+                else:
+                    return STALEMATE
 
 
 class Game:
     def __init__(self):
         self.board = Board()
-        self.move_list = []
         self.turn = WHITE
 
     def move(self, from_square, to_square, promotion=None):
@@ -602,7 +623,6 @@ class Game:
             return False
 
         self.board.apply_move(move)
-        self.move_list.append(move)
         self.turn *= -1
 
         return True
@@ -644,4 +664,50 @@ class Game:
         self.board.apply_move(m)
 
     def display(self, perspective=WHITE):
-        self.board.print_board(perspective)
+        if type(perspective) == int:
+            self.board.print_board(perspective)
+        elif type(perspective) == str:
+            if perspective.lower() == "white":
+                self.board.print_board(WHITE)
+            else:
+                self.board.print_board(BLACK)
+
+    def generate_legal_moves_for(self, color):
+        pieces = [piece for piece in self.board.pieces if piece.color == color and piece.captured is False]
+        moves = []
+        for piece in pieces:
+            final_locs = []
+            if piece.piece_type == PAWN:
+                if color == WHITE:
+                    diffs = [[-1, 0], [-2, 0], [-1, -1], [-1, 1]]
+                    final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+                else:
+                    diffs = [[1, 0], [2, 0], [1, -1], [1, 1]]
+                    final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+            elif piece.piece_type == KNIGHT:
+                diffs = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]
+                final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+            elif piece.piece_type == BISHOP:
+                diffs = [[a, a] for a in range(-7, 8) if a != 0]
+                diffs.extend([[a, -a] for a in range(-7, 8) if a != 0])
+                final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+            elif piece.piece_type == ROOK:
+                diffs = [[a, 0] for a in range(-7, 8) if a != 0]
+                diffs.extend([[0, a] for a in range(-7, 8) if a != 0])
+                final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+            elif piece.piece_type == QUEEN:
+                diffs = [[a, a] for a in range(-7, 8) if a != 0]
+                diffs.extend([[a, -a] for a in range(-7, 8) if a != 0])
+                diffs.extend([[a, 0] for a in range(-7, 8) if a != 0])
+                diffs.extend([[0, a] for a in range(-7, 8) if a != 0])
+                final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+            elif piece.piece_type == KING:
+                diffs = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+                final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+
+            for final_loc in final_locs:
+                move = self._correct_move(self.board, Move(piece.square, final_loc, piece, self.board.get(final_loc)))
+                if GameRules.is_move_legal(self.board, move):
+                    moves.append(move)
+
+        return moves
