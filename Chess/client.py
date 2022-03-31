@@ -3,6 +3,11 @@ import socket
 
 import model
 
+
+def is_valid_input(square_name: str):
+    return len(square_name) == 2 and square_name[0].lower() in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] and square_name[1] in ['1', '2', '3', '4', '5', '6', '7', '8']
+
+
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((socket.gethostname(), 55555))
@@ -37,12 +42,37 @@ def main():
 
         running = True
         while running:
-            g: model.Game = pickle.loads(s.recv(2277))
+            g: model.Game = pickle.loads(s.recv(4096))
             my_color = s.recv(5).decode("utf-8")
             turn_color = s.recv(5).decode("utf-8")
+            turn = -1 if turn_color == "WHITE" else 1
 
-            print(my_color, turn_color)
+            print("-" * 5, turn_color, "-" * 5)
             g.display(my_color)
+
+            if turn_color == my_color:
+                move_success = False
+                while not move_success:
+                    valid_input = False
+                    square_to_move_from = ""
+                    square_to_move_to = ""
+                    while not valid_input:
+                        square_to_move_from = input(f"Enter what you want to move: ")
+                        square_to_move_to = input(f"Enter where you want to move: ")
+                        valid_input = is_valid_input(square_to_move_from) and is_valid_input(square_to_move_to) and \
+                                      g.board.get(square_to_move_from) is not None and g.board.get(square_to_move_from).color == turn
+
+                        if not valid_input:
+                            print("\nInvalid input! Try again!\n")
+                            g.display(turn)
+
+                    move_success = g.move(square_to_move_from, square_to_move_to)
+
+                print()
+
+                s.send(bytes(square_to_move_from, "utf-8"))
+                s.send(bytes(square_to_move_to, "utf-8"))
+
 
 
 

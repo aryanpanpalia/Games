@@ -1,6 +1,7 @@
 import pickle
 import random
 import socket
+import sys
 import threading
 import time
 
@@ -41,7 +42,10 @@ class Room:
             self.player2.sendall(bytes(colors[self.player2], "utf-8"))
             self.player2.sendall(bytes(color, "utf-8"))
 
-            time.sleep(5)
+            square_to_move_from = players[color].recv(2).decode("utf-8")
+            square_to_move_to = players[color].recv(2).decode("utf-8")
+
+            g.move(square_to_move_from, square_to_move_to)
 
             if GameRules.check_if_game_ended(g) == CHECKMATE:
                 print(f"Checkmate! {color} won!")
@@ -108,4 +112,6 @@ handle_new_connections_thread = threading.Thread(target=handle_new_connections)
 handle_new_connections_thread.start()
 
 while True:
+    sys.stdout.write(f"\rUnfilled Rooms: {len(unfilled)}; Filled Rooms: {len(filled)}")
     time.sleep(1)
+
