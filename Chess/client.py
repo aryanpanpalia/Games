@@ -1,5 +1,7 @@
+import pickle
 import socket
 
+import model
 
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -29,9 +31,19 @@ def main():
         msg = s.recv(1024)
         print(msg.decode("utf-8"))
 
-        # Message from inside Room.play()
+        # Message from inside Room.play(): "LET THE GAME BEGIN"
         msg = s.recv(1024)
         print(msg.decode("utf-8"))
+
+        running = True
+        while running:
+            g: model.Game = pickle.loads(s.recv(2277))
+            my_color = s.recv(5).decode("utf-8")
+            turn_color = s.recv(5).decode("utf-8")
+
+            print(my_color, turn_color)
+            g.display(my_color)
+
 
 
 if __name__ == '__main__':

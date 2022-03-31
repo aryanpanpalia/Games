@@ -1,3 +1,4 @@
+import pickle
 import random
 import socket
 import threading
@@ -12,18 +13,44 @@ class Room:
         self.player1: socket.socket = host
         self.player2: socket.socket = None
         self.code: int = code
-        self.game: model.Game = None
 
     def play(self):
         self.player1.send(bytes("LET THE GAME BEGIN", "utf-8"))
         self.player2.send(bytes("LET THE GAME BEGIN", "utf-8"))
 
-        # Filler code
-        p1i = self.player1.recv(1024).decode("utf-8")
-        p2i = self.player2.recv(1024).decode("utf-8")
+        g = model.Game()
+        running = True
+        players = {"WHITE": self.player1, "BLACK": self.player2}
+        colors = {self.player1: "WHITE", self.player2: "BLACK"}
+        turn = WHITE
+        color = "WHITE"
 
-        print(p1i)
-        print(p2i)
+        while running:
+            color = "WHITE" if turn == WHITE else "BLACK"
+
+            # Before each turn (white and black), send each player the game, their color, and which color's turn it is
+            # Client-side: both players will display whose turn it is as well as the board, however, the player whose turn it is will then be in an input-loop and asked
+            # to give a valid move until they succeed to do so (move will be checked client-side for validity). Then the move will be sent to the server and applied
+
+            pickled_game = pickle.dumps(g)
+            self.player1.sendall(pickled_game)
+            self.player1.sendall(bytes(colors[self.player1], "utf-8"))
+            self.player1.sendall(bytes(color, "utf-8"))
+
+            self.player2.sendall(pickled_game)
+            self.player2.sendall(bytes(colors[self.player2], "utf-8"))
+            self.player2.sendall(bytes(color, "utf-8"))
+
+            time.sleep(5)
+
+            if GameRules.check_if_game_ended(g) == CHECKMATE:
+                print(f"Checkmate! {color} won!")
+                running = False
+            elif GameRules.check_if_game_ended(g) == STALEMATE:
+                print("Stalemate!")
+                running = False
+
+            turn *= -1
 
     def __repr__(self):
         return f"{self.player1}; {self.player2}; {self.code}"
@@ -81,6 +108,4 @@ handle_new_connections_thread = threading.Thread(target=handle_new_connections)
 handle_new_connections_thread.start()
 
 while True:
-    print(unfilled)
-    print(filled)
     time.sleep(1)
