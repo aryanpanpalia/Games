@@ -2,7 +2,7 @@ import pickle
 import socket
 
 import model
-from model import GameRules, CHECKMATE, STALEMATE
+from model import GameRules, CHECKMATE, STALEMATE, WHITE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN
 
 
 def is_valid_input(square_name: str):
@@ -84,7 +84,42 @@ def main():
                             print("\nInvalid input! Try again!\n")
                             g.display(turn)
 
-                    move_success = g.move(square_to_move_from, square_to_move_to)
+                    piece_moved = g.board.get(square_to_move_from)
+
+                    # promotion
+                    promotion = False
+                    promotion_val = None
+                    if piece_moved.piece_type == PAWN:
+                        if piece_moved.color == WHITE:
+                            if square_to_move_to[1] == "8":
+                                promotion_value_str = input("To what piece do you want to promote the pawn [Q, R, B, N]: ")
+
+                                if promotion_value_str == "R":
+                                    promotion_val = ROOK
+                                elif promotion_value_str == "B":
+                                    promotion_val = BISHOP
+                                elif promotion_value_str == "N":
+                                    promotion_val = KNIGHT
+                                else:
+                                    promotion_val = QUEEN
+
+                                promotion = True
+                        else:
+                            if square_to_move_to[1] == "1":
+                                promotion_value_str = input("To what piece do you want to promote the pawn [Q, R, B, N]: ")
+
+                                if promotion_value_str == "R":
+                                    promotion_val = ROOK
+                                elif promotion_value_str == "B":
+                                    promotion_val = BISHOP
+                                elif promotion_value_str == "N":
+                                    promotion_val = KNIGHT
+                                else:
+                                    promotion_val = QUEEN
+
+                                promotion = True
+
+                    move_success = g.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
 
                 print()
 
@@ -101,6 +136,9 @@ def main():
 
                 s.send(bytes(square_to_move_from, "utf-8"))
                 s.send(bytes(square_to_move_to, "utf-8"))
+
+                if promotion:
+                    s.send(promotion_val.to_bytes(1, "big"))
 
 
 if __name__ == '__main__':

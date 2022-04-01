@@ -6,7 +6,7 @@ import threading
 import time
 
 import model
-from model import WHITE, GameRules, CHECKMATE, STALEMATE
+from model import WHITE, PAWN
 
 
 class Room:
@@ -41,7 +41,18 @@ class Room:
             square_to_move_from = players[color].recv(2).decode("utf-8")
             square_to_move_to = players[color].recv(2).decode("utf-8")
 
-            g.move(square_to_move_from, square_to_move_to)
+            # promotion
+            piece_moved = g.board.get(square_to_move_from)
+            promotion_value = None
+            if piece_moved.piece_type == PAWN:
+                if piece_moved.color == WHITE:
+                    if square_to_move_to[1] == "8":
+                        promotion_value = int.from_bytes(players[color].recv(1), "big")
+                else:
+                    if square_to_move_to[1] == "1":
+                        promotion_value = int.from_bytes(players[color].recv(1), "big")
+
+            g.move(square_to_move_from, square_to_move_to, promotion=promotion_value)
 
             turn *= -1
 
