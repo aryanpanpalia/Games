@@ -2,6 +2,7 @@ import pickle
 import socket
 
 import model
+from model import GameRules, CHECKMATE, STALEMATE
 
 
 def is_valid_input(square_name: str):
@@ -47,8 +48,25 @@ def main():
             turn_color = s.recv(5).decode("utf-8")
             turn = -1 if turn_color == "WHITE" else 1
 
-            print("-" * 5, turn_color, "-" * 5)
-            g.display(my_color)
+            if GameRules.check_if_game_ended(g) == CHECKMATE:
+                print("-" * 3, "GAME OVER", "-" * 3)
+                g.display(my_color)
+                print(f"Checkmate! You lost!")
+                running = False
+                continue
+            elif GameRules.check_if_game_ended(g) == STALEMATE:
+                print("-" * 3, "GAME OVER", "-" * 3)
+                g.display(my_color)
+                print("Stalemate!")
+                running = False
+                continue
+            elif GameRules.white_king_checked(g.board) or GameRules.black_king_checked(g.board):
+                print("-" * 5, turn_color, "-" * 5)
+                g.display(my_color)
+                print("Check!")
+            else:
+                print("-" * 5, turn_color, "-" * 5)
+                g.display(my_color)
 
             if turn_color == my_color:
                 move_success = False
@@ -70,10 +88,19 @@ def main():
 
                 print()
 
+                if GameRules.check_if_game_ended(g) == CHECKMATE:
+                    print("-" * 3, "GAME OVER", "-" * 3)
+                    g.display(my_color)
+                    print(f"Checkmate! You won!")
+                    running = False
+                elif GameRules.check_if_game_ended(g) == STALEMATE:
+                    print("-" * 3, "GAME OVER", "-" * 3)
+                    g.display(my_color)
+                    print("Stalemate!")
+                    running = False
+
                 s.send(bytes(square_to_move_from, "utf-8"))
                 s.send(bytes(square_to_move_to, "utf-8"))
-
-
 
 
 if __name__ == '__main__':

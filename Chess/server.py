@@ -6,7 +6,7 @@ import threading
 import time
 
 import model
-from model import WHITE, BLACK, GameRules, CHECKMATE, GAME_IN_PLAY, STALEMATE
+from model import WHITE, GameRules, CHECKMATE, STALEMATE
 
 
 class Room:
@@ -29,10 +29,6 @@ class Room:
         while running:
             color = "WHITE" if turn == WHITE else "BLACK"
 
-            # Before each turn (white and black), send each player the game, their color, and which color's turn it is
-            # Client-side: both players will display whose turn it is as well as the board, however, the player whose turn it is will then be in an input-loop and asked
-            # to give a valid move until they succeed to do so (move will be checked client-side for validity). Then the move will be sent to the server and applied
-
             pickled_game = pickle.dumps(g)
             self.player1.sendall(pickled_game)
             self.player1.sendall(bytes(colors[self.player1], "utf-8"))
@@ -46,13 +42,6 @@ class Room:
             square_to_move_to = players[color].recv(2).decode("utf-8")
 
             g.move(square_to_move_from, square_to_move_to)
-
-            if GameRules.check_if_game_ended(g) == CHECKMATE:
-                print(f"Checkmate! {color} won!")
-                running = False
-            elif GameRules.check_if_game_ended(g) == STALEMATE:
-                print("Stalemate!")
-                running = False
 
             turn *= -1
 
@@ -112,6 +101,6 @@ handle_new_connections_thread = threading.Thread(target=handle_new_connections)
 handle_new_connections_thread.start()
 
 while True:
-    sys.stdout.write(f"\rUnfilled Rooms: {len(unfilled)}; Filled Rooms: {len(filled)}")
+    sys.stdout.write(f"\rUnfilled Rooms: {len(unfilled)} {[room.code for room in unfilled]}; Filled Rooms: {len(filled)} {[room.code for room in filled]}")
     time.sleep(1)
 
