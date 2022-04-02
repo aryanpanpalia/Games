@@ -19,7 +19,12 @@ def main():
 
         # Message prompting for create or join
         msg = s.recv(1024)
-        response = input("Enter whether you want to join or create a room: ")
+
+        response = ""
+
+        while response.lower() not in ["create", "join"]:
+            response = input("Enter whether you want to join or create a room [join, create]: ")
+
         s.send(bytes(response, "utf-8"))
 
         if response.lower() == "create":
