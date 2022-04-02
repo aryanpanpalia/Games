@@ -24,7 +24,6 @@ class Room:
         players = {"WHITE": self.player1, "BLACK": self.player2}
         colors = {self.player1: "WHITE", self.player2: "BLACK"}
         turn = WHITE
-        color = "WHITE"
 
         while running:
             color = "WHITE" if turn == WHITE else "BLACK"
@@ -126,4 +125,3 @@ handle_new_connections_thread.start()
 while True:
     sys.stdout.write(f"\rUnfilled Rooms: {len(unfilled)} {[room.code for room in unfilled]}; Filled Rooms: {len(filled)} {[room.code for room in filled]}")
     time.sleep(1)
-

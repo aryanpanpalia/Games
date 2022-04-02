@@ -10,7 +10,6 @@ def main():
     g = model.Game()
     running = True
     turn = WHITE
-    color = "WHITE"
 
     while running:
         color = "WHITE" if turn == WHITE else "BLACK"

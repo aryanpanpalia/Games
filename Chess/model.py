@@ -144,8 +144,8 @@ class Move:
 class Board:
     def __init__(self):
         self.board, self.pieces = self.initialize()
-        self.castling = [True] * 4  # white kingside, white queenside, black kingside, black queenside
-        self.en_passent: List[bool, Square, Piece] = [False, None, None]
+        self.castling = [True] * 4  # white king-side, white queen-side, black king-side, black queen-side
+        self.en_passant: List[bool, Square, Piece] = [False, None, None]
 
     @property
     def white_king(self) -> Piece:
@@ -276,7 +276,7 @@ class Board:
         if promotion is not None:
             piece_moved.promote(promotion)
 
-        self.en_passent: List[bool, Square, Piece] = [False, None, None]
+        self.en_passant: List[bool, Square, Piece] = [False, None, None]
         if piece_moved.piece_type == ROOK:
             if piece_moved.color == WHITE:
                 if initial_loc.convert_to_name() == "a1":
@@ -296,9 +296,9 @@ class Board:
         elif piece_moved.piece_type == PAWN:
             if abs(final_loc.coords[0] - initial_loc.coords[0]) == 2:
                 if piece_moved.color == WHITE:
-                    self.en_passent = [True, Square.from_tuple((initial_loc.row - 1, initial_loc.col)), piece_moved]
+                    self.en_passant = [True, Square.from_tuple((initial_loc.row - 1, initial_loc.col)), piece_moved]
                 else:
-                    self.en_passent = [True, Square.from_tuple((initial_loc.row + 1, initial_loc.col)), piece_moved]
+                    self.en_passant = [True, Square.from_tuple((initial_loc.row + 1, initial_loc.col)), piece_moved]
 
         self.verify()
 
@@ -318,7 +318,7 @@ class Board:
             return self.board[square]
 
     def __repr__(self):
-        return f"{self.board}\n{self.pieces}\n{self.castling}\n{self.en_passent}"
+        return f"{self.board}\n{self.pieces}\n{self.castling}\n{self.en_passant}"
 
 
 class GameRules:
@@ -334,6 +334,9 @@ class GameRules:
 
         hdist = final_loc.col - initial_loc.col
         vdist = final_loc.row - initial_loc.row
+
+        if hdist == vdist == 0 and promotion is None:
+            return False
 
         if piece_moved.piece_type == PAWN:
             if hdist == 0 and vdist == 0 and promotion is not None:
@@ -354,10 +357,10 @@ class GameRules:
                     legal = True
                 elif vdist == 1 and piece_moved.color == BLACK and piece_captured.color == WHITE:
                     legal = True
-            elif abs(hdist) == 1 and board.en_passent[0] is True:
-                if vdist == -1 and piece_moved.color == WHITE and final_loc == board.en_passent[1] and board.en_passent[2].color == BLACK:
+            elif abs(hdist) == 1 and board.en_passant[0] is True:
+                if vdist == -1 and piece_moved.color == WHITE and final_loc == board.en_passant[1] and board.en_passant[2].color == BLACK:
                     legal = True
-                elif vdist == 1 and piece_moved.color == BLACK and final_loc == board.en_passent[1] and board.en_passent[2].color == WHITE:
+                elif vdist == 1 and piece_moved.color == BLACK and final_loc == board.en_passant[1] and board.en_passant[2].color == WHITE:
                     legal = True
         elif piece_moved.piece_type == KNIGHT:
             if (abs(hdist) == 2 and abs(vdist) == 1) or (abs(hdist) == 1 and abs(vdist) == 2):
@@ -603,14 +606,27 @@ class Game:
         self.turn = WHITE
 
     def move(self, from_square, to_square, promotion=None):
-        iMove = Move(
-            Square.from_name(from_square),
-            Square.from_name(to_square),
-            self.board.get(Square.from_name(from_square)),
-            self.board.get(Square.from_name(to_square)),
-            promotion=promotion
-        )
-        move = self._correct_move(self.board, iMove)
+        if type(from_square) == type(to_square) == str:
+            iMove = Move(
+                Square.from_name(from_square),
+                Square.from_name(to_square),
+                self.board.get(Square.from_name(from_square)),
+                self.board.get(Square.from_name(to_square)),
+                promotion=promotion
+            )
+        elif type(from_square) == type(to_square) == Square:
+            iMove = Move(
+                from_square,
+                to_square,
+                self.board.get(from_square),
+                self.board.get(to_square),
+                promotion=promotion
+            )
+
+        try:
+            move = self._correct_move(self.board, iMove)
+        except Exception:
+            return False
 
         if move.piece_moved.color != self.turn:
             print("\nIt is not your turn!\n")
@@ -644,12 +660,12 @@ class Game:
         vdist = final_loc.row - initial_loc.row
 
         if piece_moved.piece_type == PAWN:
-            if board.en_passent[0] is True:
+            if board.en_passant[0] is True:
                 if abs(hdist) == 1:
-                    if vdist == -1 and piece_moved.color == WHITE and final_loc == board.en_passent[1] and board.en_passent[2].color == BLACK:
-                        move = Move(initial_loc, final_loc, piece_moved, piece_captured=board.en_passent[2], promotion=promotion)
-                    elif vdist == 1 and piece_moved.color == BLACK and final_loc == board.en_passent[1] and board.en_passent[2].color == WHITE:
-                        move = Move(initial_loc, final_loc, piece_moved, piece_captured=board.en_passent[2], promotion=promotion)
+                    if vdist == -1 and piece_moved.color == WHITE and final_loc == board.en_passant[1] and board.en_passant[2].color == BLACK:
+                        move = Move(initial_loc, final_loc, piece_moved, piece_captured=board.en_passant[2], promotion=promotion)
+                    elif vdist == 1 and piece_moved.color == BLACK and final_loc == board.en_passant[1] and board.en_passant[2].color == WHITE:
+                        move = Move(initial_loc, final_loc, piece_moved, piece_captured=board.en_passant[2], promotion=promotion)
 
         return move
 
