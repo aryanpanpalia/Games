@@ -81,8 +81,14 @@ def handle_new_connection(csock, addr):
         rooms.append(new_room)
         csock.send(bytes(f"Your room code is {new_room_code}", "utf-8"))
     elif response.lower() == "join":
-        # prompt them for join code then set them as player 2
-        csock.send(bytes("Enter the room code: ", "utf-8"))
+        # Send all current room codes to client
+        room_codes = [room.code for room in unfilled]
+        pickled_room_codes = pickle.dumps(room_codes)
+        msg_len = str(len(pickled_room_codes)).encode('utf-8')
+        csock.sendall(msg_len)
+        csock.sendall(pickled_room_codes)
+
+        # Receive valid room code from client
         response = csock.recv(1024).decode("utf-8")
 
         for room in unfilled:

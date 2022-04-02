@@ -33,9 +33,20 @@ def main():
             print(msg.decode("utf-8"))
             print("Waiting for someone to join...")
         elif response.lower() == "join":
-            # Message asking for room code
-            msg = s.recv(1024)
-            response = input("Enter your room code: ")
+            # Room code message length
+            room_codes_len = int(s.recv(64).decode('utf-8'))
+            # Message containing all current room codes
+            room_codes = pickle.loads(s.recv(room_codes_len))
+
+            valid_room_code = False
+            while not valid_room_code:
+                response = input("Enter your room code: ")
+
+                if int(response) in room_codes:
+                    valid_room_code = True
+                else:
+                    print("Invalid room code!")
+
             s.send(bytes(response, "utf-8"))
 
         # Message stating that someone/you joined the room
