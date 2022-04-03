@@ -6,7 +6,7 @@ import threading
 import time
 
 import model
-from model import WHITE, PAWN
+from model import WHITE, PAWN, GameRules, CHECKMATE, STALEMATE
 
 
 class Room:
@@ -27,6 +27,7 @@ class Room:
 
         while running:
             color = "WHITE" if turn == WHITE else "BLACK"
+            not_color = "BLACK" if turn == WHITE else "WHITE"
 
             pickled_game = pickle.dumps(g)
             self.player1.sendall(pickled_game)
@@ -52,6 +53,15 @@ class Room:
                         promotion_value = int.from_bytes(players[color].recv(1), "big")
 
             g.move(square_to_move_from, square_to_move_to, promotion=promotion_value)
+
+            if GameRules.check_if_game_ended(g) == CHECKMATE or GameRules.check_if_game_ended(g) == STALEMATE:
+                pickled_game = pickle.dumps(g)
+
+                # Send the player who did not just play the final game state
+                players[not_color].sendall(pickled_game)
+                players[not_color].sendall(bytes(colors[self.player1], "utf-8"))
+                players[not_color].sendall(bytes(color, "utf-8"))
+                running = False
 
             turn *= -1
 
