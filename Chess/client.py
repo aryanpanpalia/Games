@@ -59,104 +59,125 @@ def main():
         msg = s.recv(1024)
         print(msg.decode("utf-8"))
 
-        running = True
-        while running:
-            g: model.Game = pickle.loads(s.recv(4096))
-            my_color = s.recv(5).decode("utf-8")
-            turn_color = s.recv(5).decode("utf-8")
-            turn = -1 if turn_color == "WHITE" else 1
-
-            if GameRules.check_if_game_ended(g) == CHECKMATE:
-                print("-" * 3, "GAME OVER", "-" * 3)
-                g.display(my_color)
-                print(f"Checkmate! You lost!")
-                running = False
-                continue
-            elif GameRules.check_if_game_ended(g) == STALEMATE:
-                print("-" * 3, "GAME OVER", "-" * 3)
-                g.display(my_color)
-                print("Stalemate!")
-                running = False
-                continue
-            elif GameRules.white_king_checked(g.board) or GameRules.black_king_checked(g.board):
-                print("-" * 5, turn_color, "-" * 5)
-                g.display(my_color)
-                print("Check!")
-            else:
-                print("-" * 5, turn_color, "-" * 5)
-                g.display(my_color)
-
-            if turn_color == my_color:
-                move_success = False
-                while not move_success:
-                    valid_input = False
-                    square_to_move_from = ""
-                    square_to_move_to = ""
-                    while not valid_input:
-                        square_to_move_from = input(f"Enter what you want to move: ")
-                        square_to_move_to = input(f"Enter where you want to move: ")
-                        valid_input = is_valid_input(square_to_move_from) and is_valid_input(square_to_move_to) and \
-                                      g.board.get(square_to_move_from) is not None and g.board.get(square_to_move_from).color == turn
-
-                        if not valid_input:
-                            print("\nInvalid input! Try again!\n")
-                            g.display(turn)
-
-                    piece_moved = g.board.get(square_to_move_from)
-
-                    # promotion
-                    promotion = False
-                    promotion_val = None
-                    if piece_moved.piece_type == PAWN:
-                        if piece_moved.color == WHITE:
-                            if square_to_move_to[1] == "8":
-                                promotion_value_str = input("To what piece do you want to promote the pawn [Q, R, B, N]: ")
-
-                                if promotion_value_str == "R":
-                                    promotion_val = ROOK
-                                elif promotion_value_str == "B":
-                                    promotion_val = BISHOP
-                                elif promotion_value_str == "N":
-                                    promotion_val = KNIGHT
-                                else:
-                                    promotion_val = QUEEN
-
-                                promotion = True
-                        else:
-                            if square_to_move_to[1] == "1":
-                                promotion_value_str = input("To what piece do you want to promote the pawn [Q, R, B, N]: ")
-
-                                if promotion_value_str == "R":
-                                    promotion_val = ROOK
-                                elif promotion_value_str == "B":
-                                    promotion_val = BISHOP
-                                elif promotion_value_str == "N":
-                                    promotion_val = KNIGHT
-                                else:
-                                    promotion_val = QUEEN
-
-                                promotion = True
-
-                    move_success = g.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
-
-                print()
+        in_room = True
+        while in_room:
+            in_game = True
+            while in_game:
+                pickled_game_len = int(s.recv(64).decode('utf-8'))
+                g: model.Game = pickle.loads(s.recv(pickled_game_len))
+                my_color = s.recv(5).decode("utf-8")
+                turn_color = s.recv(5).decode("utf-8")
+                turn = -1 if turn_color == "WHITE" else 1
 
                 if GameRules.check_if_game_ended(g) == CHECKMATE:
                     print("-" * 3, "GAME OVER", "-" * 3)
                     g.display(my_color)
-                    print(f"Checkmate! You won!")
-                    running = False
+                    print(f"Checkmate! You lost!")
+                    in_game = False
+                    continue
                 elif GameRules.check_if_game_ended(g) == STALEMATE:
                     print("-" * 3, "GAME OVER", "-" * 3)
                     g.display(my_color)
                     print("Stalemate!")
-                    running = False
+                    in_game = False
+                    continue
+                elif GameRules.white_king_checked(g.board) or GameRules.black_king_checked(g.board):
+                    print("-" * 5, turn_color, "-" * 5)
+                    g.display(my_color)
+                    print("Check!")
+                else:
+                    print("-" * 5, turn_color, "-" * 5)
+                    g.display(my_color)
 
-                s.send(bytes(square_to_move_from, "utf-8"))
-                s.send(bytes(square_to_move_to, "utf-8"))
+                if turn_color == my_color:
+                    move_success = False
+                    while not move_success:
+                        valid_input = False
+                        square_to_move_from = ""
+                        square_to_move_to = ""
+                        while not valid_input:
+                            square_to_move_from = input(f"Enter what you want to move: ")
+                            square_to_move_to = input(f"Enter where you want to move: ")
+                            valid_input = is_valid_input(square_to_move_from) and is_valid_input(square_to_move_to) and \
+                                          g.board.get(square_to_move_from) is not None and g.board.get(square_to_move_from).color == turn
 
-                if promotion:
-                    s.send(promotion_val.to_bytes(1, "big"))
+                            if not valid_input:
+                                print("\nInvalid input! Try again!\n")
+                                g.display(turn)
+
+                        piece_moved = g.board.get(square_to_move_from)
+
+                        # promotion
+                        promotion = False
+                        promotion_val = None
+                        if piece_moved.piece_type == PAWN:
+                            if piece_moved.color == WHITE:
+                                if square_to_move_to[1] == "8":
+                                    promotion_value_str = input("To what piece do you want to promote the pawn [Q, R, B, N]: ")
+
+                                    if promotion_value_str == "R":
+                                        promotion_val = ROOK
+                                    elif promotion_value_str == "B":
+                                        promotion_val = BISHOP
+                                    elif promotion_value_str == "N":
+                                        promotion_val = KNIGHT
+                                    else:
+                                        promotion_val = QUEEN
+
+                                    promotion = True
+                            else:
+                                if square_to_move_to[1] == "1":
+                                    promotion_value_str = input("To what piece do you want to promote the pawn [Q, R, B, N]: ")
+
+                                    if promotion_value_str == "R":
+                                        promotion_val = ROOK
+                                    elif promotion_value_str == "B":
+                                        promotion_val = BISHOP
+                                    elif promotion_value_str == "N":
+                                        promotion_val = KNIGHT
+                                    else:
+                                        promotion_val = QUEEN
+
+                                    promotion = True
+
+                        move_success = g.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
+
+                    print()
+
+                    if GameRules.check_if_game_ended(g) == CHECKMATE:
+                        print("-" * 3, "GAME OVER", "-" * 3)
+                        g.display(my_color)
+                        print(f"Checkmate! You won!")
+                        in_game = False
+                    elif GameRules.check_if_game_ended(g) == STALEMATE:
+                        print("-" * 3, "GAME OVER", "-" * 3)
+                        g.display(my_color)
+                        print("Stalemate!")
+                        in_game = False
+
+                    s.send(bytes(square_to_move_from, "utf-8"))
+                    s.send(bytes(square_to_move_to, "utf-8"))
+
+                    if promotion:
+                        s.send(promotion_val.to_bytes(1, "big"))
+
+            # Message asking if player wants to play again
+            msg = s.recv(1024)
+
+            response = input("Rematch [y, N]: ")
+            while response.lower() not in ["", "y", "n"]:
+                response = input("Rematch [y, N]: ")
+
+            if response.lower() == "y":
+                s.send(bytes("y", "utf-8"))
+            else:
+                s.send(bytes("n", "utf-8"))
+
+            # Rematch decision
+            msg = s.recv(1024).decode("utf-8")
+            print(msg)
+            if msg == "Rematch denied!":
+                in_room = False
 
 
 if __name__ == '__main__':
