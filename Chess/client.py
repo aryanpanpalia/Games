@@ -25,7 +25,7 @@ def main():
         while response.lower() not in ["create", "join"]:
             response = input("Enter whether you want to join or create a room [join, create]: ")
 
-        s.send(bytes(response, "utf-8"))
+        s.sendall(bytes(response, "utf-8"))
 
         if response.lower() == "create":
             # Message giving room code
@@ -38,7 +38,7 @@ def main():
                 response = input("Enter your room code: ")
 
                 # Send request for valid codes
-                s.send(bytes("-1", "utf-8"))
+                s.sendall(bytes("-1", "utf-8"))
                 # Room code message length
                 room_codes_len = int(s.recv(64).decode('utf-8'))
                 # Message containing all current room codes
@@ -49,7 +49,7 @@ def main():
                 else:
                     print("Invalid room code!")
 
-            s.send(bytes(response, "utf-8"))
+            s.sendall(bytes(response, "utf-8"))
 
         # Message stating that someone/you joined the room
         msg = s.recv(1024)
@@ -155,11 +155,11 @@ def main():
                         print("Stalemate!")
                         in_game = False
 
-                    s.send(bytes(square_to_move_from, "utf-8"))
-                    s.send(bytes(square_to_move_to, "utf-8"))
+                    s.sendall(bytes(square_to_move_from, "utf-8"))
+                    s.sendall(bytes(square_to_move_to, "utf-8"))
 
                     if promotion:
-                        s.send(promotion_val.to_bytes(1, "big"))
+                        s.sendall(promotion_val.to_bytes(1, "big"))
 
             # Message asking if player wants to play again
             msg = s.recv(1024)
@@ -169,9 +169,9 @@ def main():
                 response = input("Rematch [y, N]: ")
 
             if response.lower() == "y":
-                s.send(bytes("y", "utf-8"))
+                s.sendall(bytes("y", "utf-8"))
             else:
-                s.send(bytes("n", "utf-8"))
+                s.sendall(bytes("n", "utf-8"))
 
             # Rematch decision
             msg = s.recv(1024).decode("utf-8")

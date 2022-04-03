@@ -112,8 +112,8 @@ s.bind(('0.0.0.0', 55555))
 
 
 def handle_new_connection(csock, addr):
-    csock.send(bytes("Welcome to Chess!", "utf-8"))
-    csock.send(bytes("Do you want to create or join a room: ", "utf-8"))
+    csock.sendall(bytes("Welcome to Chess!", "utf-8"))
+    csock.sendall(bytes("Do you want to create or join a room: ", "utf-8"))
 
     response = csock.recv(1024).decode("utf-8")
 
@@ -122,7 +122,7 @@ def handle_new_connection(csock, addr):
         new_room = Room(csock, new_room_code)
         unfilled.append(new_room)
         rooms.append(new_room)
-        csock.send(bytes(f"Your room code is {new_room_code}", "utf-8"))
+        csock.sendall(bytes(f"Your room code is {new_room_code}", "utf-8"))
     elif response.lower() == "join":
         # Receive valid room code from client
         response = "-1"
@@ -147,8 +147,8 @@ def handle_new_connection(csock, addr):
                 unfilled.remove(room)
                 filled.append(room)
 
-                room.player1.send(bytes("Someone has joined the room!", "utf-8"))
-                csock.send(bytes(f"Joined room!", "utf-8"))
+                room.player1.sendall(bytes("Someone has joined the room!", "utf-8"))
+                csock.sendall(bytes(f"Joined room!", "utf-8"))
 
                 room_thread = threading.Thread(target=room.play)
                 room_thread.start()
