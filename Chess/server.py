@@ -45,8 +45,8 @@ class Room:
                 self.player2.sendall(bytes(colors[self.player2], "utf-8"))
                 self.player2.sendall(bytes(color, "utf-8"))
 
-                square_to_move_from = players[color].recv(2).decode("utf-8")
-                square_to_move_to = players[color].recv(2).decode("utf-8")
+                square_to_move_from = players[color].recv(2).decode("utf-8").lower()
+                square_to_move_to = players[color].recv(2).decode("utf-8").lower()
 
                 # promotion
                 piece_moved = g.board.get(square_to_move_from)
@@ -115,15 +115,15 @@ def handle_new_connection(csock, addr):
     csock.sendall(bytes("Welcome to Chess!", "utf-8"))
     csock.sendall(bytes("Do you want to create or join a room: ", "utf-8"))
 
-    response = csock.recv(1024).decode("utf-8")
+    response = csock.recv(1024).decode("utf-8").lower()
 
-    if response.lower() == "create":
+    if response == "create":
         new_room_code = random.choice([x for x in range(1, 10000) if x not in [room.code for room in rooms]])
         new_room = Room(csock, new_room_code)
         unfilled.append(new_room)
         rooms.append(new_room)
         csock.sendall(bytes(f"Your room code is {new_room_code}", "utf-8"))
-    elif response.lower() == "join":
+    elif response == "join":
         # Receive valid room code from client
         response = "-1"
         while response == "-1":
