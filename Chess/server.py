@@ -103,14 +103,6 @@ class Room:
         return f"{self.player1}; {self.player2}; {self.code}"
 
 
-unfilled = []
-filled = []
-rooms = []
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('0.0.0.0', 55555))
-
-
 def handle_new_connection(csock, addr):
     csock.sendall(bytes("Welcome to Chess!", "utf-8"))
     csock.sendall(bytes("Do you want to create or join a room: ", "utf-8"))
@@ -163,9 +155,17 @@ def handle_new_connections():
         handle_new_connection_thread.start()
 
 
-handle_new_connections_thread = threading.Thread(target=handle_new_connections)
-handle_new_connections_thread.start()
+if __name__ == '__main__':
+    unfilled = []
+    filled = []
+    rooms = []
 
-while True:
-    sys.stdout.write(f"\rUnfilled Rooms: {len(unfilled)} {[room.code for room in unfilled]}; Filled Rooms: {len(filled)} {[room.code for room in filled]}")
-    time.sleep(1)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('0.0.0.0', 55555))
+
+    handle_new_connections_thread = threading.Thread(target=handle_new_connections)
+    handle_new_connections_thread.start()
+
+    while True:
+        sys.stdout.write(f"\rUnfilled Rooms: {len(unfilled)} {[room.code for room in unfilled]}; Filled Rooms: {len(filled)} {[room.code for room in filled]}")
+        time.sleep(1)
