@@ -24,7 +24,7 @@ def recv(sock: socket.socket) -> bytes:
 
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((socket.gethostname(), 55555))
+        s.connect((SERVER, PORT))
 
         # Welcome message
         msg = recv(s).decode("utf-8")
@@ -192,4 +192,6 @@ def main():
 
 if __name__ == '__main__':
     HEADER = 64
+    SERVER = socket.gethostname()
+    PORT = 55555
     main()
