@@ -9,28 +9,41 @@ def is_valid_input(square_name: str):
     return len(square_name) == 2 and square_name[0].lower() in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] and square_name[1] in ['1', '2', '3', '4', '5', '6', '7', '8']
 
 
+def send(sock: socket.socket, data: bytes):
+    data_len = str(len(data)).encode("utf-8")
+    data_len += b' ' * (HEADER - len(data_len))
+    sock.sendall(data_len)
+    sock.sendall(data)
+
+
+def recv(sock: socket.socket) -> bytes:
+    data_len = int(sock.recv(HEADER).decode("utf-8"))
+    data = sock.recv(data_len)
+    return data
+
+
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((socket.gethostname(), 55555))
 
         # Welcome message
-        msg = s.recv(1024)
-        print(msg.decode("utf-8"))
+        msg = recv(s).decode("utf-8")
+        print(msg)
 
         # Message prompting for create or join
-        msg = s.recv(1024)
+        msg = recv(s)
 
         response = ""
 
         while response.lower() not in ["create", "join"]:
             response = input("Enter whether you want to join or create a room [join, create]: ")
 
-        s.sendall(bytes(response, "utf-8"))
+        send(s, bytes(response, "utf-8"))
 
         if response.lower() == "create":
             # Message giving room code
-            msg = s.recv(1024)
-            print(msg.decode("utf-8"))
+            msg = recv(s).decode("utf-8")
+            print(msg)
             print("Waiting for someone to join...")
         elif response.lower() == "join":
             valid_room_code = False
@@ -38,35 +51,32 @@ def main():
                 response = input("Enter your room code: ")
 
                 # Send request for valid codes
-                s.sendall(bytes("-1", "utf-8"))
-                # Room code message length
-                room_codes_len = int(s.recv(64).decode('utf-8'))
+                send(s, bytes("-1", "utf-8"))
                 # Message containing all current room codes
-                room_codes = pickle.loads(s.recv(room_codes_len))
+                room_codes = pickle.loads(recv(s))
 
                 if int(response) in room_codes:
                     valid_room_code = True
                 else:
                     print("Invalid room code!")
 
-            s.sendall(bytes(response, "utf-8"))
+            send(s, bytes(response, "utf-8"))
 
         # Message stating that someone/you joined the room
-        msg = s.recv(1024)
-        print(msg.decode("utf-8"))
+        msg = recv(s).decode("utf-8")
+        print(msg)
 
         # Message from inside Room.play(): "LET THE GAME BEGIN"
-        msg = s.recv(1024)
-        print(msg.decode("utf-8"))
+        msg = recv(s).decode("utf-8")
+        print(msg)
 
         in_room = True
         while in_room:
             in_game = True
             while in_game:
-                pickled_game_len = int(s.recv(64).decode('utf-8'))
-                g: model.Game = pickle.loads(s.recv(pickled_game_len))
-                my_color = s.recv(5).decode("utf-8")
-                turn_color = s.recv(5).decode("utf-8")
+                g: model.Game = pickle.loads(recv(s))
+                my_color = recv(s).decode("utf-8")
+                turn_color = recv(s).decode("utf-8")
                 turn = -1 if turn_color == "WHITE" else 1
 
                 if GameRules.check_if_game_ended(g) == CHECKMATE:
@@ -155,30 +165,31 @@ def main():
                         print("Stalemate!")
                         in_game = False
 
-                    s.sendall(bytes(square_to_move_from, "utf-8"))
-                    s.sendall(bytes(square_to_move_to, "utf-8"))
+                    send(s, bytes(square_to_move_from, "utf-8"))
+                    send(s, bytes(square_to_move_to, "utf-8"))
 
                     if promotion:
-                        s.sendall(promotion_val.to_bytes(1, "big"))
+                        send(s, promotion_val.to_bytes(1, "big"))
 
             # Message asking if player wants to play again
-            msg = s.recv(1024)
+            msg = recv(s)
 
             response = input("Rematch [y, N]: ")
             while response.lower() not in ["", "y", "n"]:
                 response = input("Rematch [y, N]: ")
 
             if response.lower() == "y":
-                s.sendall(bytes("y", "utf-8"))
+                send(s, bytes("y", "utf-8"))
             else:
-                s.sendall(bytes("n", "utf-8"))
+                send(s, bytes("n", "utf-8"))
 
             # Rematch decision
-            msg = s.recv(1024).decode("utf-8")
+            msg = recv(s).decode("utf-8")
             print(msg)
             if msg == "Rematch denied!":
                 in_room = False
 
 
 if __name__ == '__main__':
+    HEADER = 64
     main()
