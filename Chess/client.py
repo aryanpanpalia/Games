@@ -17,8 +17,24 @@ def send(sock: socket.socket, data: bytes):
 
 
 def recv(sock: socket.socket) -> bytes:
-    data_len = int(sock.recv(HEADER).decode("utf-8"))
-    data = sock.recv(data_len)
+    header = b''
+    received_length = 0
+
+    while HEADER - received_length > 0:
+        header += sock.recv(HEADER - received_length)
+        received_length = len(header)
+
+    data_len = int(header.decode("utf-8"))
+    received_length = 0
+
+    chunks = []
+    while data_len - received_length > 0:
+        chunk = sock.recv(data_len - received_length)
+        chunks.append(chunk)
+        received_length += len(chunk)
+
+    data = b''.join(chunks)
+
     return data
 
 
