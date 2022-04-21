@@ -14,23 +14,19 @@ def main():
     while running:
         color = "WHITE" if turn == WHITE else "BLACK"
         move_success = False
+        print("-" * 5, color, "-" * 5)
+        g.display(turn)
         while not move_success:
-            print("-" * 5, color, "-" * 5)
-            g.display(turn)
-            valid_input = False
-            square_to_move_from = ""
-            square_to_move_to = ""
-            while not valid_input:
-                square_to_move_from = input(f"[{color}] Enter what you want to move: ")
-                square_to_move_to = input(f"[{color}] Enter where you want to move: ")
-                valid_input = is_valid_input(square_to_move_from) and is_valid_input(square_to_move_to) and \
-                              g.board.get(square_to_move_from) is not None and g.board.get(square_to_move_from).color == turn
+            square_to_move_from = input(f"[{color}] Enter what you want to move: ")
+            square_to_move_to = input(f"[{color}] Enter where you want to move: ")
+            valid_input = is_valid_input(square_to_move_from) and is_valid_input(square_to_move_to) and \
+                          g.board.get(square_to_move_from) is not None and g.board.get(square_to_move_from).color == turn
 
-                if not valid_input:
-                    print("\nInvalid input! Try again!\n")
-                    g.display(turn)
-
-            move_success = g.move(square_to_move_from, square_to_move_to)
+            if not valid_input:
+                print("\nInvalid input! Try again!\n")
+                g.display(turn)
+            else:
+                move_success = g.move(square_to_move_from, square_to_move_to)
 
         print()
 
