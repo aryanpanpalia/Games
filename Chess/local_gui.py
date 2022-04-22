@@ -15,9 +15,16 @@ def draw_board(win, game, perspective=WHITE):
             square = pg.Rect(col * 100, row * 100, 100, 100)
             pg.draw.rect(win, (9 * 16 + 10, 7 * 16 + 11, 4 * 16 + 15) if white else (3 * 16 + 7, 1 * 16 + 13, 1 * 16), square)
 
-            if game.board.board[row, col] is not None:
-                piece = font.render(str(game.board.board[row, col]), True, (0, 0, 0))
-                win.blit(piece, (col * 100 + 35, row * 100 + 15))
+    for piece in game.board.pieces:
+        if not piece.captured:
+            piece_text = font.render(str(piece), True, (0, 0, 0))
+            col = piece.square.col
+            row = piece.square.row
+
+            if perspective == WHITE:
+                win.blit(piece_text, (col * 100 + 35, row * 100 + 15))
+            else:
+                win.blit(piece_text, ((7 - col) * 100 + 35, (7 - row) * 100 + 15))
 
     pg.display.update()
 
@@ -35,7 +42,7 @@ def main():
     turn = WHITE
 
     while running:
-        draw_board(win, game)
+        draw_board(win, game, perspective=turn)
 
         events = pg.event.get()
         for event in events:
@@ -43,17 +50,28 @@ def main():
                 running = False
             elif event.type == pg.MOUSEBUTTONDOWN:
                 pos = event.dict['pos']
-                square = Square((pos[1] // 100, pos[0] // 100))
+                row = pos[1] // 100
+                col = pos[0] // 100
+
+                if turn == WHITE:
+                    square = Square((row, col))
+                else:
+                    square = Square((7 - row, 7 - col))
 
                 if square_to_move_from is None:
                     if game.board.get(square) and game.board.get(square).color == turn:
                         square_to_move_from = square
                 elif square_to_move_to is None:
                     square_to_move_to = square
-
             elif event.type == pg.MOUSEBUTTONUP:
                 pos = event.dict['pos']
-                square = Square((pos[1] // 100, pos[0] // 100))
+                row = pos[1] // 100
+                col = pos[0] // 100
+
+                if turn == WHITE:
+                    square = Square((row, col))
+                else:
+                    square = Square((7 - row, 7 - col))
 
                 if square_to_move_from is not None and square_to_move_to is None and square_to_move_from != square:
                     square_to_move_to = square
