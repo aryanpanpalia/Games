@@ -77,7 +77,18 @@ def main():
                     square_to_move_to = square
 
         if square_to_move_from is not None and square_to_move_to is not None:
-            move_success = game.move(square_to_move_from, square_to_move_to)
+            # Promotion
+            piece_moved = game.board.get(square_to_move_from)
+            promotion_val = None
+            if piece_moved.piece_type == PAWN:
+                if piece_moved.color == WHITE:
+                    if square_to_move_to.row == 0:
+                        promotion_val = QUEEN
+                else:
+                    if square_to_move_to.row == 7:
+                        promotion_val = QUEEN
+
+            move_success = game.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
             square_to_move_from = None
             square_to_move_to = None
 
