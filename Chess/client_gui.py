@@ -1,9 +1,10 @@
-import py_compile
-import time
-import pygame as pg
 import pickle
-import socket
 import select
+import socket
+import threading
+
+import pygame as pg
+import pygame.time
 
 import model
 from model import *
@@ -64,6 +65,50 @@ def recv(sock: socket.socket) -> bytes:
     return data
 
 
+def handle_multiplayer(sock: socket.socket):
+    global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_val, ready_to_send, about_to_send, game_over
+    sock.setblocking(False)
+    while not game_over:
+        readable, _, _ = select.select([sock], [], [], 1)
+
+        if readable and not game_over:
+            sock.setblocking(True)
+
+            maybe_game = recv(sock)
+
+            # not game. actually message asking for rematch
+            if len(maybe_game) < 2000:
+                return
+
+            game = pickle.loads(maybe_game)
+            my_color = recv(sock).decode("utf-8")
+            turn_color = recv(sock).decode("utf-8")
+
+            turn = -1 if turn_color == "WHITE" else 1
+            my_color_int = -1 if my_color == "WHITE" else 1
+            sock.setblocking(False)
+
+        if ready_to_send:
+            sock.setblocking(True)
+
+            from_square = square_to_move_from.convert_to_name()
+            to_square = square_to_move_to.convert_to_name()
+            if promotion_val:
+                promotion = promotion_val.to_bytes(1, "big")
+
+            about_to_send = True
+
+            send(sock, bytes(from_square, "utf-8"))
+            send(sock, bytes(to_square, "utf-8"))
+
+            if promotion_val:
+                send(sock, promotion)
+
+            sock.setblocking(False)
+
+            ready_to_send = False
+
+
 def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((SERVER, PORT))
@@ -118,42 +163,21 @@ def main():
             pg.display.set_caption("Chess")
             win = pg.display.set_mode((800, 800))
 
-            square_to_move_from = None
-            square_to_move_to = None
-
-            g: model.Game = Game()
-            my_color = None
-            turn_color = None
-
             in_game = True
 
-            s.setblocking(False)
+            handle_multiplayer_thread = threading.Thread(target=handle_multiplayer, args=(s,))
+            handle_multiplayer_thread.start()
 
             while in_game:
-                readable, writable, error = select.select([s], [], [s], 0.1)
+                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_val, ready_to_send, about_to_send, game_over
 
-                if readable:
-                    s.setblocking(True)
-                    g: model.Game = pickle.loads(recv(s))
-                    my_color = recv(s).decode("utf-8")
-                    turn_color = recv(s).decode("utf-8")
-                    turn = -1 if turn_color == "WHITE" else 1
-                    my_color_int = -1 if my_color == "WHITE" else 1
-                    s.setblocking(False)
-                
-                if error:
-                    print("Error")
-                    pg.quit()
-                    time.sleep(2)
-                    quit(-1)
+                draw_board(win, game, perspective=my_color_int)
 
-                draw_board(win, g, perspective=my_color_int)
-
-                if GameRules.check_if_game_ended(g) == CHECKMATE:
+                if GameRules.check_if_game_ended(game) == CHECKMATE:
                     print(f"Checkmate! You lost!")
                     in_game = False
                     break
-                elif GameRules.check_if_game_ended(g) == STALEMATE:
+                elif GameRules.check_if_game_ended(game) == STALEMATE:
                     print("Stalemate!")
                     in_game = False
                     break
@@ -173,7 +197,7 @@ def main():
                             square = Square((7 - row, 7 - col))
 
                         if square_to_move_from is None:
-                            if g.board.get(square) and g.board.get(square).color == my_color_int:
+                            if game.board.get(square) and game.board.get(square).color == my_color_int:
                                 square_to_move_from = square
                         elif square_to_move_to is None:
                             square_to_move_to = square
@@ -193,8 +217,7 @@ def main():
 
                 if square_to_move_from and square_to_move_to and my_color_int == turn:
                     # Promotion
-                    piece_moved = g.board.get(square_to_move_from)
-                    promotion_val = None
+                    piece_moved = game.board.get(square_to_move_from)
                     if piece_moved.piece_type == PAWN:
                         if piece_moved.color == WHITE:
                             if square_to_move_to.row == 0:
@@ -203,36 +226,44 @@ def main():
                             if square_to_move_to.row == 7:
                                 promotion_val = QUEEN
 
-                    move_success = g.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
+                    move_success = game.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
 
                     if move_success:
-                        if GameRules.check_if_game_ended(g) == CHECKMATE:
+                        if GameRules.check_if_game_ended(game) == CHECKMATE:
                             print(f'Checkmate! {"WHITE" if turn == WHITE else "BLACK"} won!')
                             in_game = False
-                        elif GameRules.check_if_game_ended(g) == STALEMATE:
+                        elif GameRules.check_if_game_ended(game) == STALEMATE:
                             print("Stalemate!")
                             in_game = False
 
-                        s.setblocking(True)
-                        send(s, bytes(square_to_move_from.convert_to_name(), "utf-8"))
-                        send(s, bytes(square_to_move_to.convert_to_name(), "utf-8"))
-                        
-                        if promotion_val:
-                            send(s, promotion_val.to_bytes(1, "big"))
+                        draw_board(win, game, perspective=my_color_int)
 
-                        s.setblocking(False)
+                        ready_to_send = True
 
+                        while not about_to_send:
+                            pygame.time.Clock().tick(15)
+
+                        about_to_send = False
+
+                        square_to_move_from = None
+                        square_to_move_to = None
+                        promotion_val = None
                         turn *= -1
+                    else:
+                        square_to_move_from = None
+                        square_to_move_to = None
+                        promotion_val = None
 
-                    square_to_move_from = None
-                    square_to_move_to = None
+            draw_board(win, game, perspective=my_color_int)
 
+            for _ in range(5 * 30):
+                pygame.event.pump()
+                pygame.time.Clock().tick(30)
+
+            game_over = True
             pg.quit()
 
             s.setblocking(True)
-
-            # Message asking if player wants to play again
-            msg = recv(s)
 
             response = input("Rematch [y, N]: ")
             while response.lower() not in ["", "y", "n"]:
@@ -248,10 +279,28 @@ def main():
             print(msg)
             if msg == "Rematch denied!":
                 in_room = False
+            else:
+                game_over = False
 
 
 if __name__ == '__main__':
     HEADER = 64
     SERVER = socket.gethostname()
     PORT = 55555
+
+    game: model.Game = Game()
+    my_color = None
+    turn_color = None
+    turn = None
+    my_color_int = None
+
+    square_to_move_from = None
+    square_to_move_to = None
+    promotion_val = None
+
+    ready_to_send = False
+    about_to_send = False
+
+    game_over = False
+
     main()
