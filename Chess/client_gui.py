@@ -1,3 +1,4 @@
+import os
 import pickle
 import select
 import socket
@@ -15,7 +16,6 @@ def is_valid_input(square_name: str):
 
 
 def draw_board(win, game, perspective=WHITE):
-    font = pg.font.SysFont("Comic Sans MS", 50)
     for row in range(8):
         for col in range(8):
             white = (row + col) % 2 == 0
@@ -24,14 +24,14 @@ def draw_board(win, game, perspective=WHITE):
 
     for piece in game.board.pieces:
         if not piece.captured:
-            piece_text = font.render(str(piece), True, (0, 0, 0))
+            piece_image = piece_images[str(piece)]
             col = piece.square.col
             row = piece.square.row
 
             if perspective == WHITE:
-                win.blit(piece_text, (col * 100 + 35, row * 100 + 15))
+                win.blit(piece_image, (col * 100, row * 100))
             else:
-                win.blit(piece_text, ((7 - col) * 100 + 35, (7 - row) * 100 + 15))
+                win.blit(piece_image, ((7 - col) * 100, (7 - row) * 100))
 
     pg.display.update()
 
@@ -287,6 +287,8 @@ if __name__ == '__main__':
     HEADER = 64
     SERVER = socket.gethostname()
     PORT = 55555
+
+    piece_images = {image[1]: pygame.transform.smoothscale(pygame.image.load(f'assets/{image}'), (100, 100)) for image in os.listdir("assets")}
 
     game: model.Game = Game()
     my_color = None
