@@ -2,6 +2,7 @@ import os
 import pickle
 import select
 import socket
+import sys
 import threading
 
 import pygame as pg
@@ -283,12 +284,21 @@ def main():
                 game_over = False
 
 
+def rss_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
 if __name__ == '__main__':
     HEADER = 64
     SERVER = socket.gethostname()
     PORT = 55555
 
-    piece_images = {image[1]: pygame.transform.smoothscale(pygame.image.load(f'assets/{image}'), (100, 100)) for image in os.listdir("assets")}
+    piece_images = {image[1]: pygame.transform.smoothscale(pygame.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 
     game: model.Game = Game()
     my_color = None
