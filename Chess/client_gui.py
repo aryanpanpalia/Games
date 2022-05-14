@@ -198,9 +198,8 @@ def main():
                         else:
                             square = Square((7 - row, 7 - col))
 
-                        if square_to_move_from is None:
-                            if game.board.get(square) and game.board.get(square).color == my_color_int:
-                                square_to_move_from = square
+                        if game.board.get(square) and game.board.get(square).color == my_color_int:
+                            square_to_move_from = square
                         elif square_to_move_to is None:
                             square_to_move_to = square
 
