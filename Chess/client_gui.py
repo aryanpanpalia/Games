@@ -161,7 +161,7 @@ def main():
         in_room = True
         while in_room:
             pg.init()
-            pg.display.set_caption("Chess")
+            pg.display.set_caption("Chess [WHITE]")
             win = pg.display.set_mode((800, 800))
 
             in_game = True
@@ -173,6 +173,7 @@ def main():
                 global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_val, ready_to_send, about_to_send, game_over
 
                 draw_board(win, game, perspective=my_color_int)
+                pg.display.set_caption(f"Chess [{turn_color}]")
 
                 if GameRules.check_if_game_ended(game) == CHECKMATE:
                     print(f"Checkmate! You lost!")
