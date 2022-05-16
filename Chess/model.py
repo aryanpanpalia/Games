@@ -688,6 +688,44 @@ class Game:
             else:
                 self.board.print_board(BLACK)
 
+    def generate_legal_squares_to_move_to_for(self, piece: Piece):
+        all_squares = []
+        squares = []
+        if piece.piece_type == PAWN:
+            if piece.color == WHITE:
+                diffs = [[-1, 0], [-2, 0], [-1, -1], [-1, 1]]
+                all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+            else:
+                diffs = [[1, 0], [2, 0], [1, -1], [1, 1]]
+                all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+        elif piece.piece_type == KNIGHT:
+            diffs = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]
+            all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+        elif piece.piece_type == BISHOP:
+            diffs = [[a, a] for a in range(-7, 8) if a != 0]
+            diffs.extend([[a, -a] for a in range(-7, 8) if a != 0])
+            all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+        elif piece.piece_type == ROOK:
+            diffs = [[a, 0] for a in range(-7, 8) if a != 0]
+            diffs.extend([[0, a] for a in range(-7, 8) if a != 0])
+            all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+        elif piece.piece_type == QUEEN:
+            diffs = [[a, a] for a in range(-7, 8) if a != 0]
+            diffs.extend([[a, -a] for a in range(-7, 8) if a != 0])
+            diffs.extend([[a, 0] for a in range(-7, 8) if a != 0])
+            diffs.extend([[0, a] for a in range(-7, 8) if a != 0])
+            all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+        elif piece.piece_type == KING:
+            diffs = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+            all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
+
+        for square in all_squares:
+            move = self._correct_move(self.board, Move(piece.square, square, piece, self.board.get(square)))
+            if GameRules.is_move_legal(self.board, move):
+                squares.append(square)
+
+        return squares
+
     def generate_legal_moves_for(self, color):
         pieces = [piece for piece in self.board.pieces if piece.color == color and piece.captured is False]
         moves = []

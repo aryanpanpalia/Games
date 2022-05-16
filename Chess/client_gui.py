@@ -34,6 +34,17 @@ def draw_board(win, game, perspective=WHITE):
             else:
                 win.blit(piece_image, ((7 - col) * 100, (7 - row) * 100))
 
+    if square_to_move_from is not None and not move_incomplete:
+        piece = game.board.get(square_to_move_from)
+        for square in game.generate_legal_squares_to_move_to_for(piece):
+            col = square.col
+            row = square.row
+
+            if perspective == WHITE:
+                pg.draw.circle(win, (64, 64, 64), (col * 100 + 50, row * 100 + 50), 20)
+            else:
+                pg.draw.circle(win, (64, 64, 64), ((7 - col) * 100 + 50, (7 - row) * 100 + 50), 20)
+
     pg.display.update()
 
 
@@ -170,7 +181,7 @@ def main():
             handle_multiplayer_thread.start()
 
             while in_game:
-                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_val, ready_to_send, about_to_send, game_over
+                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_val, ready_to_send, about_to_send, move_incomplete, game_over
 
                 draw_board(win, game, perspective=my_color_int)
                 pg.display.set_caption(f"Chess [{turn_color}]")
@@ -228,6 +239,7 @@ def main():
                                 promotion_val = QUEEN
 
                     move_success = game.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
+                    move_incomplete = True
 
                     if move_success:
                         if GameRules.check_if_game_ended(game) == CHECKMATE:
@@ -244,6 +256,7 @@ def main():
                         while not about_to_send:
                             pygame.time.Clock().tick(15)
 
+                        move_incomplete = False
                         about_to_send = False
 
                         square_to_move_from = None
@@ -310,6 +323,7 @@ if __name__ == '__main__':
     square_to_move_to = None
     promotion_val = None
 
+    move_incomplete = False
     ready_to_send = False
     about_to_send = False
 
