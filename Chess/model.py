@@ -1,5 +1,4 @@
 import copy
-from typing import List
 
 import numpy as np
 
@@ -10,8 +9,6 @@ ROOK = 3
 QUEEN = 4
 KING = 5
 
-piece_types = [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING]
-
 WHITE = -1
 BLACK = 1
 
@@ -19,86 +16,63 @@ STALEMATE = -1
 GAME_IN_PLAY = 0
 CHECKMATE = 1
 
-piece_colors = [WHITE, BLACK]
-
 
 class Piece:
     def __init__(self, piece_type, color, square):
         self.piece_type = piece_type
         self.color = color
-
-        if type(square) == Square:
-            self.square = square
-        elif type(square) == str:
-            self.square = Square.from_name(square)
-        else:
-            raise Exception("Square value passed to piece in __init__() is invalid.")
-
+        self.square = Square.get_square(square)
         self.captured = False
 
     def move(self, square):
-        if type(square) == Square:
-            self.square = square
-        elif type(square) == str:
-            self.square = Square.from_name(square)
-        else:
-            raise Exception("Square value passed to piece in move() is invalid.")
+        self.square = Square.get_square(square)
 
     def promote(self, piece):
         if self.piece_type == PAWN:
             self.piece_type = piece
 
-    def __str__(self, short=True):
-        # short: R
-        # long: eg. R (7, 7)/(h1)
+    def __str__(self):
         letters = ['p', 'n', 'b', 'r', 'q', 'k']
         letter = letters[self.piece_type]
 
         if self.color == WHITE:
             letter = letter.upper()
 
-        if short:
-            return letter
-        else:
-            raise NotImplementedError("long version of __str__ for piece not yet implemented")
+        return letter
 
     def __repr__(self):
-        letters = ['p', 'n', 'b', 'r', 'q', 'k']
-        letter = letters[self.piece_type]
-
-        if self.color == WHITE:
-            letter = letter.upper()
-
-        if self.captured:
-            captured = "CAPTURED"
-        else:
-            captured = "IN PLAY"
-
-        return f"{letter}({self.square})[{captured}]"
+        return str(self)
 
 
 class Square(tuple):
-    def __init__(self, tup: tuple):
+    def __init__(self, tup):
         self.row = tup[0]
         self.col = tup[1]
         self.coords = tup
 
+    @classmethod
+    def get_square(cls, *args):
+        if len(args) == 1:
+            arg = args[0]
+            if type(arg) == tuple:
+                return cls(arg)
+            elif type(arg) == str:
+                return cls.from_name(arg)
+            elif type(arg) == Square:
+                return arg
+        elif len(args) == 2:
+            a, b = args
+            if type(a) == type(b) == int:
+                return cls(args)
+
     def get_diff(self, diff):
         row = self.row + diff[0]
         col = self.col + diff[1]
-        return Square.from_tuple((row, col))
+        return Square((row, col))
 
     @staticmethod
     def is_valid(square):
         return 0 <= square.row < 8 and 0 <= square.col < 8
-
-    @classmethod
-    def from_tuple(cls, tup: tuple):
-        return cls(tup)
-
-    @classmethod
-    def from_name(cls, name):
-        return cls(cls.convert_to_coords(name))
 
     def convert_to_name(self):
         files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -109,8 +83,8 @@ class Square(tuple):
 
         return file + rank
 
-    @staticmethod
-    def convert_to_coords(name):
+    @classmethod
+    def convert_to_coords(cls, name):
         file = name[0].lower()
         rank = name[1]
 
@@ -121,6 +95,10 @@ class Square(tuple):
         col = files[file]
 
         return row, col
+
+    @classmethod
+    def from_name(cls, name):
+        return cls(cls.convert_to_coords(name))
 
     def __str__(self):
         return self.convert_to_name()
@@ -133,26 +111,29 @@ class Square(tuple):
 
 
 class Move:
-    def __init__(self, initial_loc: Square, final_loc: Square, piece_moved: Piece, piece_captured=None, promotion=None):
+    def __init__(self, initial_loc, final_loc, piece_moved, piece_captured=None, promotion=None):
         self.initial_loc = initial_loc
         self.final_loc = final_loc
         self.piece_moved = piece_moved
         self.piece_captured = piece_captured
         self.promotion = promotion
 
+    def to_algebraic_notation(self):
+        raise NotImplementedError("to_algebraic_notation")
+
 
 class Board:
     def __init__(self):
         self.board, self.pieces = self.initialize()
         self.castling = [True] * 4  # white king-side, white queen-side, black king-side, black queen-side
-        self.en_passant: List[bool, Square, Piece] = [False, None, None]
+        self.en_passant = [False, None, None]  # is there en passant, where it is, what pawn moved 2
 
     @property
     def white_king(self) -> Piece:
         return self.pieces[20]
 
     @property
-    def black_king(self):
+    def black_king(self) -> Piece:
         return self.pieces[4]
 
     @staticmethod
@@ -205,32 +186,6 @@ class Board:
 
         return board, pieces
 
-    def print_board(self, perspective=WHITE):
-        if perspective == WHITE:
-            for row in range(8):
-                print(8 - row, end=" ")
-                for col in range(8):
-                    val = self.board[row, col]
-                    if val is not None:
-                        print(val, end=" ")
-                    else:
-                        print("-", end=" ")
-                print()
-            print("  a b c d e f g h")
-            print()
-        else:
-            for row in reversed(range(8)):
-                print(8 - row, end=" ")
-                for col in reversed(range(8)):
-                    val = self.board[row, col]
-                    if val is not None:
-                        print(val, end=" ")
-                    else:
-                        print("-", end=" ")
-                print()
-            print("  h g f e d c b a")
-            print()
-
     def apply_move(self, move: Move):
         initial_loc = move.initial_loc
         final_loc = move.final_loc
@@ -276,7 +231,6 @@ class Board:
         if promotion is not None:
             piece_moved.promote(promotion)
 
-        self.en_passant: List[bool, Square, Piece] = [False, None, None]
         if piece_moved.piece_type == ROOK:
             if piece_moved.color == WHITE:
                 if initial_loc.convert_to_name() == "a1":
@@ -288,86 +242,87 @@ class Board:
                     self.castling[3] = False
                 else:
                     self.castling[2] = False
-        elif piece_moved.piece_type == KING:
+
+        if piece_moved.piece_type == KING:
             if piece_moved.color == WHITE:
                 self.castling[:2] = [False] * 2
             else:
                 self.castling[2:] = [False] * 2
-        elif piece_moved.piece_type == PAWN:
+
+        self.en_passant = [False, None, None]
+        if piece_moved.piece_type == PAWN:
             if abs(final_loc.coords[0] - initial_loc.coords[0]) == 2:
                 if piece_moved.color == WHITE:
-                    self.en_passant = [True, Square.from_tuple((initial_loc.row - 1, initial_loc.col)), piece_moved]
+                    self.en_passant = [True, Square((initial_loc.row - 1, initial_loc.col)), piece_moved]
                 else:
-                    self.en_passant = [True, Square.from_tuple((initial_loc.row + 1, initial_loc.col)), piece_moved]
-
-        self.verify()
-
-    def verify(self):
-        for row in range(8):
-            for col in range(8):
-                piece: Piece = self.board[row, col]
-                if piece is not None:
-                    if piece.square != Square.from_tuple((row, col)):
-                        raise Exception("The board positions and the pieces' internal positions do not match")
+                    self.en_passant = [True, Square((initial_loc.row + 1, initial_loc.col)), piece_moved]
 
     def get(self, square) -> Piece:
-        if type(square) == Square:
-            return self.board[square.row, square.col]
-        elif type(square) == str:
-            square = Square.from_name(square)
-            return self.board[square]
-
-    def __repr__(self):
-        return f"{self.board}\n{self.pieces}\n{self.castling}\n{self.en_passant}"
+        return self.board[Square.get_square(square)]
 
 
-class GameRules:
-    @staticmethod
-    def is_move_legal(board: Board, move: Move, check_if_exposes_king=True):
-        initial_loc = move.initial_loc
-        final_loc = move.final_loc
-        piece_moved = move.piece_moved
+class Game:
+    def __init__(self):
+        self.board = Board()
+        self.turn = WHITE
+
+    def is_move_legal(self, move: Move, check_if_exposes_king=True) -> bool:
+        initial_loc: Square = move.initial_loc
+        final_loc: Square = move.final_loc
+        piece_moved: Piece = move.piece_moved
         piece_captured: Piece = move.piece_captured
-        promotion = move.promotion
 
         legal = False
 
         hdist = final_loc.col - initial_loc.col
         vdist = final_loc.row - initial_loc.row
 
-        if hdist == vdist == 0 and promotion is None:
+        if hdist == vdist == 0:
             return False
 
+        if piece_captured and piece_captured.color == piece_moved.color:
+            return False
+
+        if check_if_exposes_king:
+            test_board = copy.deepcopy(self.board)
+            test_move = copy.deepcopy(move)
+
+            test_move.piece_moved = test_board.pieces[self.board.pieces.index(piece_moved)]
+            if piece_captured is not None:
+                test_move.piece_captured = test_board.pieces[self.board.pieces.index(piece_captured)]
+
+            test_board.apply_move(test_move)
+
+            if piece_moved.color == WHITE:
+                if self.is_targeted(BLACK, test_board.white_king.square, check_if_exposes_king=False):
+                    return False
+            else:
+                if self.is_targeted(WHITE, test_board.black_king.square, check_if_exposes_king=False):
+                    return False
+
         if piece_moved.piece_type == PAWN:
-            if hdist == 0 and vdist == 0 and promotion is not None:
-                legal = True
-            elif hdist == 0 and piece_captured is None:
+            if hdist == 0 and not piece_captured:
                 if vdist == -1 and piece_moved.color == WHITE:
-                    legal = True
-                elif vdist == -2 and piece_moved.color == WHITE and initial_loc.row == 6 and board.get(
-                        Square.from_tuple((initial_loc.row - 1, initial_loc.col))) is None:
-                    legal = True
+                    return True
+                elif vdist == -2 and piece_moved.color == WHITE and initial_loc.row == 6 and not self.board.get(initial_loc.get_diff([-1, 0])):
+                    return True
                 elif vdist == 1 and piece_moved.color == BLACK:
-                    legal = True
-                elif vdist == 2 and piece_moved.color == BLACK and initial_loc.row == 1 and board.get(
-                        Square.from_tuple((initial_loc.row + 1, initial_loc.col))) is None:
-                    legal = True
-            elif abs(hdist) == 1 and piece_captured is not None:
+                    return True
+                elif vdist == 2 and piece_moved.color == BLACK and initial_loc.row == 1 and not self.board.get(initial_loc.get_diff([1, 0])):
+                    return True
+            elif abs(hdist) == 1 and piece_captured:
                 if vdist == -1 and piece_moved.color == WHITE and piece_captured.color == BLACK:
-                    legal = True
+                    return True
                 elif vdist == 1 and piece_moved.color == BLACK and piece_captured.color == WHITE:
-                    legal = True
-            elif abs(hdist) == 1 and board.en_passant[0] is True:
-                if vdist == -1 and piece_moved.color == WHITE and final_loc == board.en_passant[1] and board.en_passant[2].color == BLACK:
-                    legal = True
-                elif vdist == 1 and piece_moved.color == BLACK and final_loc == board.en_passant[1] and board.en_passant[2].color == WHITE:
-                    legal = True
+                    return True
+            elif abs(hdist) == 1 and self.board.en_passant[0] is True:
+                if vdist == -1 and piece_moved.color == WHITE and final_loc == self.board.en_passant[1] and self.board.en_passant[2].color == BLACK:
+                    return True
+                elif vdist == 1 and piece_moved.color == BLACK and final_loc == self.board.en_passant[1] and self.board.en_passant[2].color == WHITE:
+                    return True
         elif piece_moved.piece_type == KNIGHT:
             if (abs(hdist) == 2 and abs(vdist) == 1) or (abs(hdist) == 1 and abs(vdist) == 2):
-                if piece_captured is None:
-                    legal = True
-                elif piece_moved.color != piece_captured.color:
-                    legal = True
+                return True
         elif piece_moved.piece_type == BISHOP:
             if abs(hdist) == abs(vdist):
                 # check if path is clear
@@ -376,14 +331,11 @@ class GameRules:
 
                 blocked = False
                 for row, col in zip(rows, cols):
-                    if board.get(Square.from_tuple((row, col))) not in [None, piece_moved, piece_captured]:
+                    if self.board.get(Square((row, col))) not in [None, piece_moved, piece_captured]:
                         blocked = True
 
                 if not blocked:
-                    if piece_captured is None:
-                        legal = True
-                    elif piece_moved.color != piece_captured.color:
-                        legal = True
+                    return True
         elif piece_moved.piece_type == ROOK:
             if hdist == 0 and vdist != 0:
                 # check if path is clear
@@ -392,14 +344,11 @@ class GameRules:
 
                 blocked = False
                 for row in rows:
-                    if board.get(Square.from_tuple((row, col))) is not None:
+                    if self.board.get(Square((row, col))) is not None:
                         blocked = True
 
                 if not blocked:
-                    if piece_captured is None:
-                        legal = True
-                    elif piece_moved.color != piece_captured.color:
-                        legal = True
+                    return True
             elif hdist != 0 and vdist == 0:
                 # check if path is clear
                 row = initial_loc.row
@@ -407,14 +356,11 @@ class GameRules:
 
                 blocked = False
                 for col in cols:
-                    if board.get(Square.from_tuple((row, col))) is not None:
+                    if self.board.get(Square((row, col))) is not None:
                         blocked = True
 
                 if not blocked:
-                    if piece_captured is None:
-                        legal = True
-                    elif piece_moved.color != piece_captured.color:
-                        legal = True
+                    return True
         elif piece_moved.piece_type == QUEEN:
             if abs(hdist) == abs(vdist):
                 # check if path is clear
@@ -423,14 +369,11 @@ class GameRules:
 
                 blocked = False
                 for row, col in zip(rows, cols):
-                    if board.get(Square.from_tuple((row, col))) not in [None, piece_moved, piece_captured]:
+                    if self.board.get(Square((row, col))) not in [None, piece_moved, piece_captured]:
                         blocked = True
 
                 if not blocked:
-                    if piece_captured is None:
-                        legal = True
-                    elif piece_moved.color != piece_captured.color:
-                        legal = True
+                    return True
             elif hdist == 0 and vdist != 0:
                 # check if path is clear
                 rows = range(min(initial_loc.row, final_loc.row), max(initial_loc.row, final_loc.row))[1:]
@@ -438,14 +381,11 @@ class GameRules:
 
                 blocked = False
                 for row in rows:
-                    if board.get(Square.from_tuple((row, col))) is not None:
+                    if self.board.get(Square((row, col))) is not None:
                         blocked = True
 
                 if not blocked:
-                    if piece_captured is None:
-                        legal = True
-                    elif piece_moved.color != piece_captured.color:
-                        legal = True
+                    return True
             elif hdist != 0 and vdist == 0:
                 # check if path is clear
                 row = initial_loc.row
@@ -453,71 +393,44 @@ class GameRules:
 
                 blocked = False
                 for col in cols:
-                    if board.get(Square.from_tuple((row, col))) is not None:
+                    if self.board.get(Square((row, col))) is not None:
                         blocked = True
 
                 if not blocked:
-                    if piece_captured is None:
-                        legal = True
-                    elif piece_moved.color != piece_captured.color:
-                        legal = True
+                    return True
         elif piece_moved.piece_type == KING:
             if -1 <= hdist <= 1 and -1 <= vdist <= 1:
-                if piece_moved.color == WHITE and not GameRules.is_targeted(board=board, targeting_color=BLACK, targeted_square=final_loc):
-                    if piece_captured is None:
-                        legal = True
-                    elif piece_moved.color != piece_captured.color:
-                        legal = True
-                elif not GameRules.is_targeted(board=board, targeting_color=WHITE, targeted_square=final_loc):
-                    if piece_captured is None:
-                        legal = True
-                    elif piece_moved.color != piece_captured.color:
-                        legal = True
-            elif board.castling[0] and piece_moved.color == WHITE and final_loc == Square.from_name("g1"):
-                if board.get("f1") is None and board.get("g1") is None and \
-                        not GameRules.is_targeted(board=board, targeting_color=BLACK, targeted_square=Square.from_name("f1")) and \
-                        not GameRules.is_targeted(board=board, targeting_color=BLACK, targeted_square=Square.from_name("g1")):
-                    legal = True
-            elif board.castling[1] and piece_moved.color == WHITE and final_loc == Square.from_name("c1"):
-                if board.get("d1") is None and board.get("c1") is None and board.get("b1") is None and \
-                        not GameRules.is_targeted(board=board, targeting_color=BLACK, targeted_square=Square.from_name("d1")) and \
-                        not GameRules.is_targeted(board=board, targeting_color=BLACK, targeted_square=Square.from_name("c1")) and \
-                        not GameRules.is_targeted(board=board, targeting_color=BLACK, targeted_square=Square.from_name("b1")):
-                    legal = True
-            elif board.castling[2] and piece_moved.color == BLACK and final_loc == Square.from_name("g8"):
-                if board.get("f8") is None and board.get("g8") is None and \
-                        not GameRules.is_targeted(board=board, targeting_color=WHITE, targeted_square=Square.from_name("f8")) and \
-                        not GameRules.is_targeted(board=board, targeting_color=WHITE, targeted_square=Square.from_name("g8")):
-                    legal = True
-            elif board.castling[3] and piece_moved.color == BLACK and final_loc == Square.from_name("c8"):
-                if board.get("d8") is None and board.get("c8") is None and board.get("b8") is None and \
-                        not GameRules.is_targeted(board=board, targeting_color=WHITE, targeted_square=Square.from_name("d8")) and \
-                        not GameRules.is_targeted(board=board, targeting_color=WHITE, targeted_square=Square.from_name("c8")) and \
-                        not GameRules.is_targeted(board=board, targeting_color=WHITE, targeted_square=Square.from_name("b8")):
-                    legal = True
-
-        if legal and check_if_exposes_king:
-            test_board = copy.deepcopy(board)
-            test_move = copy.deepcopy(move)
-
-            test_move.piece_moved = test_board.pieces[board.pieces.index(piece_moved)]
-            if piece_captured is not None:
-                test_move.piece_captured = test_board.pieces[board.pieces.index(piece_captured)]
-
-            test_board.apply_move(test_move)
-
-            if piece_moved.color == WHITE:
-                if GameRules.white_king_checked(test_board):
-                    legal = False
-            else:
-                if GameRules.black_king_checked(test_board):
-                    legal = False
+                if piece_moved.color == WHITE and not self.is_targeted(targeting_color=BLACK, targeted_square=final_loc):
+                    return True
+                elif not self.is_targeted(targeting_color=WHITE, targeted_square=final_loc):
+                    return True
+            elif self.board.castling[0] and piece_moved.color == WHITE and final_loc == Square.from_name("g1"):
+                if not self.board.get("f1") and not self.board.get("g1") and \
+                        not self.is_targeted(targeting_color=BLACK, targeted_square=Square.from_name("f1")) and \
+                        not self.is_targeted(targeting_color=BLACK, targeted_square=Square.from_name("g1")):
+                    return True
+            elif self.board.castling[1] and piece_moved.color == WHITE and final_loc == Square.from_name("c1"):
+                if not self.board.get("d1") and not self.board.get("c1") and not self.board.get("b1") and \
+                        not self.is_targeted(targeting_color=BLACK, targeted_square=Square.from_name("d1")) and \
+                        not self.is_targeted(targeting_color=BLACK, targeted_square=Square.from_name("c1")) and \
+                        not self.is_targeted(targeting_color=BLACK, targeted_square=Square.from_name("b1")):
+                    return True
+            elif self.board.castling[2] and piece_moved.color == BLACK and final_loc == Square.from_name("g8"):
+                if not self.board.get("f8") and not self.board.get("g8") and \
+                        not self.is_targeted(targeting_color=WHITE, targeted_square=Square.from_name("f8")) and \
+                        not self.is_targeted(targeting_color=WHITE, targeted_square=Square.from_name("g8")):
+                    return True
+            elif self.board.castling[3] and piece_moved.color == BLACK and final_loc == Square.from_name("c8"):
+                if not self.board.get("d8") and not self.board.get("c8") and not self.board.get("b8") and \
+                        not self.is_targeted(targeting_color=WHITE, targeted_square=Square.from_name("d8")) and \
+                        not self.is_targeted(targeting_color=WHITE, targeted_square=Square.from_name("c8")) and \
+                        not self.is_targeted(targeting_color=WHITE, targeted_square=Square.from_name("b8")):
+                    return True
 
         return legal
 
-    @staticmethod
-    def is_targeted(board, targeting_color, targeted_square: Square):
-        targeting_pieces = [piece for piece in board.pieces if piece.color == targeting_color and piece.captured is False]
+    def is_targeted(self, targeting_color, targeted_square: Square, check_if_exposes_king=True) -> bool:
+        targeting_pieces = [piece for piece in self.board.pieces if piece.color == targeting_color and piece.captured is False]
 
         for piece in targeting_pieces:
             hdist = targeted_square.col - piece.square.col
@@ -531,7 +444,7 @@ class GameRules:
                     if abs(hdist) == 1 and vdist == 1:
                         return True
             elif piece.piece_type in [KNIGHT, BISHOP, ROOK, QUEEN]:
-                if GameRules.is_move_legal(board, Move(piece.square, targeted_square, piece)):
+                if self.is_move_legal(Move(piece.square, targeted_square, piece), check_if_exposes_king=check_if_exposes_king):
                     return True
             elif piece.piece_type == KING:
                 if -1 <= hdist <= 1 and -1 <= vdist <= 1:
@@ -539,122 +452,27 @@ class GameRules:
 
         return False
 
-    @staticmethod
-    def white_king_checked(board):
-        targeting_pieces = [piece for piece in board.pieces if piece.color == BLACK and piece.captured is False]
-
-        white_king: Piece = board.white_king
-
-        for piece in targeting_pieces:
-            hdist = white_king.square.col - piece.square.col
-            vdist = white_king.square.row - piece.square.row
-
-            if piece.piece_type == PAWN:
-                if abs(hdist) == 1 and vdist == 1:
-                    return True
-            elif piece.piece_type in [KNIGHT, BISHOP, ROOK, QUEEN]:
-                if GameRules.is_move_legal(board, Move(piece.square, white_king.square, piece, white_king), check_if_exposes_king=False):
-                    return True
-            elif piece.piece_type == KING:
-                if -1 <= hdist <= 1 and -1 <= vdist <= 1:
-                    return True
-
-        return False
-
-    @staticmethod
-    def black_king_checked(board):
-        targeting_pieces = [piece for piece in board.pieces if piece.color == WHITE and piece.captured is False]
-
-        black_king: Piece = board.black_king
-
-        for piece in targeting_pieces:
-            hdist = black_king.square.col - piece.square.col
-            vdist = black_king.square.row - piece.square.row
-
-            if piece.piece_type == PAWN:
-                if abs(hdist) == 1 and vdist == -1:
-                    return True
-            elif piece.piece_type in [KNIGHT, BISHOP, ROOK, QUEEN]:
-                if GameRules.is_move_legal(board, Move(piece.square, black_king.square, piece, black_king), check_if_exposes_king=False):
-                    return True
-            elif piece.piece_type == KING:
-                if -1 <= hdist <= 1 and -1 <= vdist <= 1:
-                    return True
-
-        return False
-
-    @staticmethod
-    def check_if_game_ended(game):
-        moves = game.generate_legal_moves_for(game.turn)
+    def check_if_game_ended(self):
+        moves = self.generate_legal_moves_for(self.turn)
 
         if len(moves) == 0:
-            if game.turn == WHITE:
-                if GameRules.white_king_checked(game.board):
+            if self.turn == WHITE:
+                if self.is_targeted(BLACK, self.board.white_king.square, check_if_exposes_king=False):
                     return CHECKMATE
                 else:
                     return STALEMATE
             else:
-                if GameRules.black_king_checked(game.board):
+                if self.is_targeted(WHITE, self.board.black_king.square, check_if_exposes_king=False):
                     return CHECKMATE
                 else:
                     return STALEMATE
 
-
-class Game:
-    def __init__(self):
-        self.board = Board()
-        self.turn = WHITE
-
-    def move(self, from_square, to_square, promotion=None):
-        if type(from_square) == type(to_square) == str:
-            iMove = Move(
-                Square.from_name(from_square),
-                Square.from_name(to_square),
-                self.board.get(Square.from_name(from_square)),
-                self.board.get(Square.from_name(to_square)),
-                promotion=promotion
-            )
-        elif type(from_square) == type(to_square) == Square:
-            iMove = Move(
-                from_square,
-                to_square,
-                self.board.get(from_square),
-                self.board.get(to_square),
-                promotion=promotion
-            )
-
-        try:
-            move = self._correct_move(self.board, iMove)
-        except Exception:
-            return False
-
-        if move.piece_moved.color != self.turn:
-            print("\nIt is not your turn!\n")
-            return False
-
-        is_move_legal = GameRules.is_move_legal(self.board, move)
-
-        if not is_move_legal:
-            print(f"\n{from_square} to {to_square} is an illegal move!\nTry Again!\n")
-            return False
-
-        self.board.apply_move(move)
-        self.turn *= -1
-
-        return True
-
     @staticmethod
-    def _correct_move(board: Board, move: Move) -> Move:
+    def correct_en_passant(board: Board, move: Move) -> Move:
         initial_loc = move.initial_loc
         final_loc = move.final_loc
         piece_moved = move.piece_moved
-        piece_captured: Piece = move.piece_captured
         promotion = move.promotion
-
-        if piece_moved is None:
-            raise Exception("No piece selected to be moved")
-        elif initial_loc == final_loc:
-            raise Exception("The piece to be moved is not moving")
 
         hdist = final_loc.col - initial_loc.col
         vdist = final_loc.row - initial_loc.row
@@ -669,24 +487,9 @@ class Game:
 
         return move
 
-    def force_move(self, from_square, to_square, promotion=None):
-        m = Move(
-            Square.from_name(from_square),
-            Square.from_name(to_square),
-            self.board.get(Square.from_name(from_square)),
-            self.board.get(Square.from_name(to_square)),
-            promotion=promotion
-        )
-        self.board.apply_move(m)
-
-    def display(self, perspective=WHITE):
-        if type(perspective) == int:
-            self.board.print_board(perspective)
-        elif type(perspective) == str:
-            if perspective.lower() == "white":
-                self.board.print_board(WHITE)
-            else:
-                self.board.print_board(BLACK)
+    def move(self, move):
+        self.board.apply_move(move)
+        self.turn *= -1
 
     def generate_legal_squares_to_move_to_for(self, piece: Piece):
         all_squares = []
@@ -720,8 +523,8 @@ class Game:
             all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
 
         for square in all_squares:
-            move = self._correct_move(self.board, Move(piece.square, square, piece, self.board.get(square)))
-            if GameRules.is_move_legal(self.board, move):
+            move = self.correct_en_passant(self.board, Move(piece.square, square, piece, self.board.get(square)))
+            if self.is_move_legal(move):
                 squares.append(square)
 
         return squares
@@ -760,8 +563,8 @@ class Game:
                 final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
 
             for final_loc in final_locs:
-                move = self._correct_move(self.board, Move(piece.square, final_loc, piece, self.board.get(final_loc)))
-                if GameRules.is_move_legal(self.board, move):
+                move = self.correct_en_passant(self.board, Move(piece.square, final_loc, piece, self.board.get(final_loc)))
+                if self.is_move_legal(move):
                     moves.append(move)
 
         return moves

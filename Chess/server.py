@@ -5,8 +5,7 @@ import sys
 import threading
 import time
 
-import model
-from model import WHITE, PAWN, GameRules, CHECKMATE, STALEMATE
+from model import *
 
 
 def send(sock: socket.socket, data: bytes):
@@ -53,7 +52,7 @@ class Room:
         send(self.player2, bytes("LET THE GAME BEGIN", "utf-8"))
 
         while in_room:
-            g = model.Game()
+            g = Game()
             in_game = True
             turn = WHITE
 
@@ -85,9 +84,17 @@ class Room:
                         if square_to_move_to[1] == "1":
                             promotion_value = int.from_bytes(recv(players[color]), "big")
 
-                g.move(square_to_move_from, square_to_move_to, promotion=promotion_value)
+                move = Move(
+                    initial_loc=Square.get_square(square_to_move_from),
+                    final_loc=Square.get_square(square_to_move_to),
+                    piece_moved=g.board.get(square_to_move_from),
+                    piece_captured=g.board.get(square_to_move_to),
+                    promotion=promotion_value
+                )
 
-                if GameRules.check_if_game_ended(g) == CHECKMATE or GameRules.check_if_game_ended(g) == STALEMATE:
+                g.move(move)
+
+                if g.check_if_game_ended() == CHECKMATE or g.check_if_game_ended() == STALEMATE:
                     pickled_game = pickle.dumps(g)
 
                     # Send the player who did not just play the final game state

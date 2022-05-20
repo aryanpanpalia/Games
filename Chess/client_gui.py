@@ -8,7 +8,6 @@ import threading
 import pygame as pg
 import pygame.time
 
-import model
 from model import *
 
 
@@ -186,11 +185,11 @@ def main():
                 draw_board(win, game, perspective=my_color_int)
                 pg.display.set_caption(f"Chess [{turn_color}]")
 
-                if GameRules.check_if_game_ended(game) == CHECKMATE:
+                if game.check_if_game_ended() == CHECKMATE:
                     print(f"Checkmate! You lost!")
                     in_game = False
                     break
-                elif GameRules.check_if_game_ended(game) == STALEMATE:
+                elif game.check_if_game_ended() == STALEMATE:
                     print("Stalemate!")
                     in_game = False
                     break
@@ -238,14 +237,24 @@ def main():
                             if square_to_move_to.row == 7:
                                 promotion_val = QUEEN
 
-                    move_success = game.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
+                    move = Move(
+                        initial_loc=square_to_move_from,
+                        final_loc=square_to_move_to,
+                        piece_moved=game.board.get(square_to_move_from),
+                        piece_captured=game.board.get(square_to_move_to),
+                        promotion=promotion_val
+                    )
+
+                    move_success = game.is_move_legal(move)
                     move_incomplete = True
 
                     if move_success:
-                        if GameRules.check_if_game_ended(game) == CHECKMATE:
+                        game.move(move)
+
+                        if game.check_if_game_ended() == CHECKMATE:
                             print(f'Checkmate! {"WHITE" if turn == WHITE else "BLACK"} won!')
                             in_game = False
-                        elif GameRules.check_if_game_ended(game) == STALEMATE:
+                        elif game.check_if_game_ended() == STALEMATE:
                             print("Stalemate!")
                             in_game = False
 
@@ -313,7 +322,7 @@ if __name__ == '__main__':
 
     piece_images = {image[1]: pygame.transform.smoothscale(pygame.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 
-    game: model.Game = Game()
+    game: Game = Game()
     my_color = None
     turn_color = None
     turn = None

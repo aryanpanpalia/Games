@@ -88,19 +88,30 @@ def main():
                     if square_to_move_to.row == 7:
                         promotion_val = QUEEN
 
-            move_success = game.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
-            square_to_move_from = None
-            square_to_move_to = None
+            move = Move(
+                initial_loc=square_to_move_from,
+                final_loc=square_to_move_to,
+                piece_moved=game.board.get(square_to_move_from),
+                piece_captured=game.board.get(square_to_move_to),
+                promotion=promotion_val
+            )
+
+            move_success = game.is_move_legal(move)
 
             if move_success:
-                if GameRules.check_if_game_ended(game) == CHECKMATE:
+                game.move(move)
+
+                if game.check_if_game_ended() == CHECKMATE:
                     print(f'Checkmate! {"WHITE" if turn == WHITE else "BLACK"} won!')
                     running = False
-                elif GameRules.check_if_game_ended(game) == STALEMATE:
+                elif game.check_if_game_ended() == STALEMATE:
                     print("Stalemate!")
                     running = False
 
                 turn *= -1
+
+            square_to_move_from = None
+            square_to_move_to = None
 
 
 if __name__ == '__main__':
