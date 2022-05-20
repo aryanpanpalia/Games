@@ -52,7 +52,7 @@ class Room:
         send(self.player2, bytes("LET THE GAME BEGIN", "utf-8"))
 
         while in_room:
-            g = Game()
+            game = Game()
             in_game = True
             turn = WHITE
 
@@ -60,7 +60,7 @@ class Room:
                 color = "WHITE" if turn == WHITE else "BLACK"
                 not_color = "BLACK" if turn == WHITE else "WHITE"
 
-                pickled_game = pickle.dumps(g)
+                pickled_game = pickle.dumps(game)
 
                 send(self.player1, pickled_game)
                 send(self.player1, bytes(colors[self.player1], "utf-8"))
@@ -74,7 +74,7 @@ class Room:
                 square_to_move_to = recv(players[color]).decode("utf-8").lower()
 
                 # promotion
-                piece_moved = g.board.get(square_to_move_from)
+                piece_moved = game.board.get(square_to_move_from)
                 promotion_value = None
                 if piece_moved.piece_type == PAWN:
                     if piece_moved.color == WHITE:
@@ -87,15 +87,15 @@ class Room:
                 move = Move(
                     initial_loc=Square.get_square(square_to_move_from),
                     final_loc=Square.get_square(square_to_move_to),
-                    piece_moved=g.board.get(square_to_move_from),
-                    piece_captured=g.board.get(square_to_move_to),
+                    piece_moved=game.board.get(square_to_move_from),
+                    piece_captured=game.board.get(square_to_move_to),
                     promotion=promotion_value
                 )
 
-                g.move(move)
+                game.move(move)
 
-                if g.check_if_game_ended() == CHECKMATE or g.check_if_game_ended() == STALEMATE:
-                    pickled_game = pickle.dumps(g)
+                if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
+                    pickled_game = pickle.dumps(game)
 
                     # Send the player who did not just play the final game state
                     send(players[not_color], pickled_game)

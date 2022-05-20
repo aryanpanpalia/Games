@@ -33,7 +33,7 @@ def draw_board(win, game, perspective=WHITE):
             else:
                 win.blit(piece_image, ((7 - col) * 100, (7 - row) * 100))
 
-    if square_to_move_from is not None and not move_incomplete:
+    if square_to_move_from is not None and not move_in_progress:
         piece = game.board.get(square_to_move_from)
         for square in game.generate_legal_squares_to_move_to_for(piece):
             col = square.col
@@ -77,7 +77,7 @@ def recv(sock: socket.socket) -> bytes:
 
 
 def handle_multiplayer(sock: socket.socket):
-    global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_val, ready_to_send, about_to_send, game_over
+    global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, ready_to_send, about_to_send, game_over
     sock.setblocking(False)
     while not game_over:
         readable, _, _ = select.select([sock], [], [], 1)
@@ -104,15 +104,15 @@ def handle_multiplayer(sock: socket.socket):
 
             from_square = square_to_move_from.convert_to_name()
             to_square = square_to_move_to.convert_to_name()
-            if promotion_val:
-                promotion = promotion_val.to_bytes(1, "big")
+            if promotion_value:
+                promotion = promotion_value.to_bytes(1, "big")
 
             about_to_send = True
 
             send(sock, bytes(from_square, "utf-8"))
             send(sock, bytes(to_square, "utf-8"))
 
-            if promotion_val:
+            if promotion_value:
                 send(sock, promotion)
 
             sock.setblocking(False)
@@ -180,18 +180,16 @@ def main():
             handle_multiplayer_thread.start()
 
             while in_game:
-                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_val, ready_to_send, about_to_send, move_incomplete, game_over
+                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, ready_to_send, about_to_send, move_in_progress, game_over
 
                 draw_board(win, game, perspective=my_color_int)
                 pg.display.set_caption(f"Chess [{turn_color}]")
 
                 if game.check_if_game_ended() == CHECKMATE:
                     print(f"Checkmate! You lost!")
-                    in_game = False
                     break
                 elif game.check_if_game_ended() == STALEMATE:
                     print("Stalemate!")
-                    in_game = False
                     break
 
                 events = pg.event.get()
@@ -232,17 +230,17 @@ def main():
                     if piece_moved.piece_type == PAWN:
                         if piece_moved.color == WHITE:
                             if square_to_move_to.row == 0:
-                                promotion_val = QUEEN
+                                promotion_value = QUEEN
                         else:
                             if square_to_move_to.row == 7:
-                                promotion_val = QUEEN
+                                promotion_value = QUEEN
 
                     move = Move(
                         initial_loc=square_to_move_from,
                         final_loc=square_to_move_to,
                         piece_moved=game.board.get(square_to_move_from),
                         piece_captured=game.board.get(square_to_move_to),
-                        promotion=promotion_val
+                        promotion=promotion_value
                     )
 
                     move_success = game.is_move_legal(move)
@@ -250,6 +248,7 @@ def main():
 
                     if move_success:
                         game.move(move)
+                        move_in_progress = True
 
                         if game.check_if_game_ended() == CHECKMATE:
                             print(f'Checkmate! {"WHITE" if turn == WHITE else "BLACK"} won!')
@@ -265,17 +264,17 @@ def main():
                         while not about_to_send:
                             pygame.time.Clock().tick(15)
 
-                        move_incomplete = False
+                        move_in_progress = False
                         about_to_send = False
 
                         square_to_move_from = None
                         square_to_move_to = None
-                        promotion_val = None
+                        promotion_value = None
                         turn *= -1
                     else:
                         square_to_move_from = None
                         square_to_move_to = None
-                        promotion_val = None
+                        promotion_value = None
 
             draw_board(win, game, perspective=my_color_int)
 
@@ -328,11 +327,11 @@ if __name__ == '__main__':
     turn = None
     my_color_int = None
 
-    square_to_move_from = None
-    square_to_move_to = None
-    promotion_val = None
+    square_to_move_from = Square((-1, -1))
+    square_to_move_to = Square((-1, -1))
+    promotion_value = -1
 
-    move_incomplete = False
+    move_in_progress = False
     ready_to_send = False
     about_to_send = False
 
