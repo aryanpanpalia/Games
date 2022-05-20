@@ -196,7 +196,8 @@ class Board:
         self.board[initial_loc] = None
         self.board[piece_moved.square] = None
 
-        if piece_captured is not None:
+        if piece_captured:
+            piece_captured.captured = True
             self.board[piece_captured.square] = None
 
         self.board[final_loc] = piece_moved
@@ -224,9 +225,6 @@ class Board:
                 self.board[Square.from_name("a8")] = None
                 self.board[Square.from_name("d8")] = rook
                 rook.move(Square.from_name("d8"))
-
-        if piece_captured is not None:
-            piece_captured.captured = True
 
         if promotion is not None:
             piece_moved.promote(promotion)
@@ -467,8 +465,7 @@ class Game:
                 else:
                     return STALEMATE
 
-    @staticmethod
-    def correct_en_passant(board: Board, move: Move) -> Move:
+    def correct_en_passant(self, move: Move) -> Move:
         initial_loc = move.initial_loc
         final_loc = move.final_loc
         piece_moved = move.piece_moved
@@ -478,16 +475,17 @@ class Game:
         vdist = final_loc.row - initial_loc.row
 
         if piece_moved.piece_type == PAWN:
-            if board.en_passant[0] is True:
+            if self.board.en_passant[0]:
                 if abs(hdist) == 1:
-                    if vdist == -1 and piece_moved.color == WHITE and final_loc == board.en_passant[1] and board.en_passant[2].color == BLACK:
-                        move = Move(initial_loc, final_loc, piece_moved, piece_captured=board.en_passant[2], promotion=promotion)
-                    elif vdist == 1 and piece_moved.color == BLACK and final_loc == board.en_passant[1] and board.en_passant[2].color == WHITE:
-                        move = Move(initial_loc, final_loc, piece_moved, piece_captured=board.en_passant[2], promotion=promotion)
+                    if vdist == -1 and piece_moved.color == WHITE and final_loc == self.board.en_passant[1] and self.board.en_passant[2].color == BLACK:
+                        move = Move(initial_loc, final_loc, piece_moved, piece_captured=self.board.en_passant[2], promotion=promotion)
+                    elif vdist == 1 and piece_moved.color == BLACK and final_loc == self.board.en_passant[1] and self.board.en_passant[2].color == WHITE:
+                        move = Move(initial_loc, final_loc, piece_moved, piece_captured=self.board.en_passant[2], promotion=promotion)
 
         return move
 
     def move(self, move):
+        move = self.correct_en_passant(move)
         self.board.apply_move(move)
         self.turn *= -1
 
@@ -523,7 +521,7 @@ class Game:
             all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
 
         for square in all_squares:
-            move = self.correct_en_passant(self.board, Move(piece.square, square, piece, self.board.get(square)))
+            move = self.correct_en_passant(Move(piece.square, square, piece, self.board.get(square)))
             if self.is_move_legal(move):
                 squares.append(square)
 
@@ -563,7 +561,7 @@ class Game:
                 final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
 
             for final_loc in final_locs:
-                move = self.correct_en_passant(self.board, Move(piece.square, final_loc, piece, self.board.get(final_loc)))
+                move = self.correct_en_passant(Move(piece.square, final_loc, piece, self.board.get(final_loc)))
                 if self.is_move_legal(move):
                     moves.append(move)
 
