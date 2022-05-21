@@ -112,10 +112,10 @@ class Square(tuple):
 
 class Move:
     def __init__(self, initial_loc, final_loc, piece_moved, piece_captured=None, promotion=None):
-        self.initial_loc = initial_loc
-        self.final_loc = final_loc
-        self.piece_moved = piece_moved
-        self.piece_captured = piece_captured
+        self.initial_loc: Square = Square.get_square(initial_loc)
+        self.final_loc: Square = Square.get_square(final_loc)
+        self.piece_moved: Piece = piece_moved
+        self.piece_captured: Piece = piece_captured
         self.promotion = promotion
 
     def to_algebraic_notation(self):
