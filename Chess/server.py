@@ -91,7 +91,7 @@ class Room:
                     piece_captured=game.board.get(square_to_move_to),
                     promotion=promotion_value
                 )
-
+                move = game.correct_en_passant(move)
                 game.move(move)
 
                 if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:

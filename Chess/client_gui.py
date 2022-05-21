@@ -242,9 +242,8 @@ def main():
                         piece_captured=game.board.get(square_to_move_to),
                         promotion=promotion_value
                     )
-
+                    move = game.correct_en_passant(move)
                     move_success = game.is_move_legal(move)
-                    move_incomplete = True
 
                     if move_success:
                         game.move(move)
