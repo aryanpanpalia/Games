@@ -208,7 +208,7 @@ def main():
 
                         if game.board.get(square) and game.board.get(square).color == my_color_int:
                             square_to_move_from = square
-                        elif square_to_move_to is None:
+                        elif not square_to_move_to:
                             square_to_move_to = square
 
                     elif event.type == pg.MOUSEBUTTONUP:
@@ -221,7 +221,7 @@ def main():
                         else:
                             square = Square((7 - row, 7 - col))
 
-                        if square_to_move_from is not None and square_to_move_to is None and square_to_move_from != square:
+                        if square_to_move_from and not square_to_move_to and square_to_move_from != square:
                             square_to_move_to = square
 
                 if square_to_move_from and square_to_move_to and my_color_int == turn:
