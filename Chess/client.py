@@ -2,11 +2,39 @@ import pickle
 import socket
 
 import model
-from model import GameRules, CHECKMATE, STALEMATE, WHITE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN
+from model import *
 
 
 def is_valid_input(square_name: str):
     return len(square_name) == 2 and square_name[0].lower() in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] and square_name[1] in ['1', '2', '3', '4', '5', '6', '7', '8']
+
+
+def display(game, color):
+    perspective = -1 if color == "WHITE" else 1
+    if perspective == WHITE:
+        for row in range(8):
+            print(8 - row, end=" ")
+            for col in range(8):
+                val = game.board.board[Square.get_square(row, col)]
+                if val is not None:
+                    print(val, end=" ")
+                else:
+                    print("-", end=" ")
+            print()
+        print("  a b c d e f g h")
+        print()
+    else:
+        for row in reversed(range(8)):
+            print(8 - row, end=" ")
+            for col in reversed(range(8)):
+                val = game.board.board[Square.get_square(row, col)]
+                if val is not None:
+                    print(val, end=" ")
+                else:
+                    print("-", end=" ")
+            print()
+        print("  h g f e d c b a")
+        print()
 
 
 def send(sock: socket.socket, data: bytes):
@@ -90,30 +118,30 @@ def main():
         while in_room:
             in_game = True
             while in_game:
-                g: model.Game = pickle.loads(recv(s))
+                game: model.Game = pickle.loads(recv(s))
                 my_color = recv(s).decode("utf-8")
                 turn_color = recv(s).decode("utf-8")
                 turn = -1 if turn_color == "WHITE" else 1
 
-                if GameRules.check_if_game_ended(g) == CHECKMATE:
+                if game.check_if_game_ended() == CHECKMATE:
                     print("-" * 3, "GAME OVER", "-" * 3)
-                    g.display(my_color)
+                    display(game, my_color)
                     print(f"Checkmate! You lost!")
                     in_game = False
                     continue
-                elif GameRules.check_if_game_ended(g) == STALEMATE:
+                elif game.check_if_game_ended() == STALEMATE:
                     print("-" * 3, "GAME OVER", "-" * 3)
-                    g.display(my_color)
+                    display(game, my_color)
                     print("Stalemate!")
                     in_game = False
                     continue
-                elif GameRules.white_king_checked(g.board) or GameRules.black_king_checked(g.board):
+                elif game.is_targeted(BLACK, game.board.white_king.square, check_if_exposes_king=False) or game.is_targeted(WHITE, game.board.black_king.square, check_if_exposes_king=False):
                     print("-" * 5, turn_color, "-" * 5)
-                    g.display(my_color)
+                    display(game, my_color)
                     print("Check!")
                 else:
                     print("-" * 5, turn_color, "-" * 5)
-                    g.display(my_color)
+                    display(game, my_color)
 
                 if turn_color == my_color:
                     move_success = False
@@ -121,13 +149,13 @@ def main():
                         square_to_move_from = input(f"Enter what you want to move: ")
                         square_to_move_to = input(f"Enter where you want to move: ")
                         valid_input = is_valid_input(square_to_move_from) and is_valid_input(square_to_move_to) and \
-                                      g.board.get(square_to_move_from) is not None and g.board.get(square_to_move_from).color == turn
+                                      game.board.get(square_to_move_from) is not None and game.board.get(square_to_move_from).color == turn
 
                         if not valid_input:
                             print("\nInvalid input! Try again!\n")
-                            g.display(turn)
+                            display(game, my_color)
                         else:
-                            piece_moved = g.board.get(square_to_move_from)
+                            piece_moved = game.board.get(square_to_move_from)
 
                             # promotion
                             promotion = False
@@ -162,18 +190,28 @@ def main():
 
                                         promotion = True
 
-                            move_success = g.move(square_to_move_from, square_to_move_to, promotion=promotion_val)
+                            move = Move(
+                                initial_loc=square_to_move_from,
+                                final_loc=square_to_move_to,
+                                piece_moved=game.board.get(square_to_move_from),
+                                piece_captured=game.board.get(square_to_move_to),
+                            )
+                            move = game.correct_en_passant(move)
+                            move_success = game.is_move_legal(move)
+
+                            if move_success:
+                                game.move(move)
 
                     print()
 
-                    if GameRules.check_if_game_ended(g) == CHECKMATE:
+                    if game.check_if_game_ended() == CHECKMATE:
                         print("-" * 3, "GAME OVER", "-" * 3)
-                        g.display(my_color)
+                        display(game, my_color)
                         print(f"Checkmate! You won!")
                         in_game = False
-                    elif GameRules.check_if_game_ended(g) == STALEMATE:
+                    elif game.check_if_game_ended() == STALEMATE:
                         print("-" * 3, "GAME OVER", "-" * 3)
-                        g.display(my_color)
+                        display(game, my_color)
                         print("Stalemate!")
                         in_game = False
 
