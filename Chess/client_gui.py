@@ -76,8 +76,8 @@ def recv(sock: socket.socket) -> bytes:
     return data
 
 
-def handle_multiplayer(sock: socket.socket):
-    global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, ready_to_send, about_to_send, game_over
+def update_from_server(sock: socket.socket):
+    global game, my_color, turn_color, turn, my_color_int, game_over
     sock.setblocking(False)
     while not game_over:
         readable, _, _ = select.select([sock], [], [], 1)
@@ -98,26 +98,6 @@ def handle_multiplayer(sock: socket.socket):
             turn = -1 if turn_color == "WHITE" else 1
             my_color_int = -1 if my_color == "WHITE" else 1
             sock.setblocking(False)
-
-        if ready_to_send:
-            sock.setblocking(True)
-
-            from_square = square_to_move_from.convert_to_name()
-            to_square = square_to_move_to.convert_to_name()
-            if promotion_value:
-                promotion = promotion_value.to_bytes(1, "big")
-
-            about_to_send = True
-
-            send(sock, bytes(from_square, "utf-8"))
-            send(sock, bytes(to_square, "utf-8"))
-
-            if promotion_value:
-                send(sock, promotion)
-
-            sock.setblocking(False)
-
-            ready_to_send = False
 
 
 def main():
@@ -176,11 +156,11 @@ def main():
 
             in_game = True
 
-            handle_multiplayer_thread = threading.Thread(target=handle_multiplayer, args=(s,))
-            handle_multiplayer_thread.start()
+            update_from_server_thread = threading.Thread(target=update_from_server, args=(s,))
+            update_from_server_thread.start()
 
             while in_game:
-                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, ready_to_send, about_to_send, move_in_progress, game_over
+                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress, game_over
 
                 draw_board(win, game, perspective=my_color_int)
                 pg.display.set_caption(f"Chess [{turn_color}]")
@@ -258,13 +238,22 @@ def main():
 
                         draw_board(win, game, perspective=my_color_int)
 
-                        ready_to_send = True
+                        s.setblocking(True)
 
-                        while not about_to_send:
-                            pygame.time.Clock().tick(15)
+                        from_square = square_to_move_from.convert_to_name()
+                        to_square = square_to_move_to.convert_to_name()
+                        if promotion_value:
+                            promotion = promotion_value.to_bytes(1, "big")
+
+                        send(s, bytes(from_square, "utf-8"))
+                        send(s, bytes(to_square, "utf-8"))
+
+                        if promotion_value:
+                            send(s, promotion)
+
+                        s.setblocking(False)
 
                         move_in_progress = False
-                        about_to_send = False
 
                         square_to_move_from = None
                         square_to_move_to = None
@@ -331,8 +320,6 @@ if __name__ == '__main__':
     promotion_value = -1
 
     move_in_progress = False
-    ready_to_send = False
-    about_to_send = False
 
     game_over = False
 
