@@ -6,7 +6,6 @@ import sys
 import threading
 
 import pygame as pg
-import pygame.time
 
 from model import *
 
@@ -267,8 +266,8 @@ def main():
             draw_board(win, game, perspective=my_color_int)
 
             for _ in range(5 * 30):
-                pygame.event.pump()
-                pygame.time.Clock().tick(30)
+                pg.event.pump()
+                pg.time.Clock().tick(30)
 
             game_over = True
             pg.quit()
@@ -307,7 +306,7 @@ if __name__ == '__main__':
     SERVER = socket.gethostname()
     PORT = 55555
 
-    piece_images = {image[1]: pygame.transform.smoothscale(pygame.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
+    piece_images = {image[1]: pg.transform.smoothscale(pg.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 
     game: Game = Game()
     my_color = None
