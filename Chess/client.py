@@ -215,11 +215,7 @@ def main():
                         print("Stalemate!")
                         in_game = False
 
-                    send(s, bytes(square_to_move_from, "utf-8"))
-                    send(s, bytes(square_to_move_to, "utf-8"))
-
-                    if promotion:
-                        send(s, promotion_val.to_bytes(1, "big"))
+                    send(s, bytes(square_to_move_from + square_to_move_to + str(promotion_val), "utf-8"))
 
             # Message asking if player wants to play again
             msg = recv(s)

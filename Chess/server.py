@@ -70,19 +70,16 @@ class Room:
                 send(self.player2, bytes(colors[self.player2], "utf-8"))
                 send(self.player2, bytes(color, "utf-8"))
 
-                square_to_move_from = recv(players[color]).decode("utf-8").lower()
-                square_to_move_to = recv(players[color]).decode("utf-8").lower()
+                move_string, _ = recv(players[color])
+
+                move_string = move_string.decode("utf-8").lower()
+                square_to_move_from = move_string[:2]
+                square_to_move_to = move_string[2:4]
 
                 # promotion
-                piece_moved = game.board.get(square_to_move_from)
                 promotion_value = None
-                if piece_moved.piece_type == PAWN:
-                    if piece_moved.color == WHITE:
-                        if square_to_move_to[1] == "8":
-                            promotion_value = int.from_bytes(recv(players[color]), "big")
-                    else:
-                        if square_to_move_to[1] == "1":
-                            promotion_value = int.from_bytes(recv(players[color]), "big")
+                if len(move_string) == 5:
+                    promotion_value = int(move_string[4])
 
                 move = Move(
                     initial_loc=Square.get_square(square_to_move_from),

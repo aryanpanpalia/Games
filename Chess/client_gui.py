@@ -239,16 +239,7 @@ def main():
 
                         s.setblocking(True)
 
-                        from_square = square_to_move_from.convert_to_name()
-                        to_square = square_to_move_to.convert_to_name()
-                        if promotion_value:
-                            promotion = promotion_value.to_bytes(1, "big")
-
-                        send(s, bytes(from_square, "utf-8"))
-                        send(s, bytes(to_square, "utf-8"))
-
-                        if promotion_value:
-                            send(s, promotion)
+                        send(s, bytes(square_to_move_from.convert_to_name() + square_to_move_to.convert_to_name() + str(promotion_value), "utf-8"))
 
                         s.setblocking(False)
 
