@@ -1,5 +1,6 @@
 import pickle
 import socket
+from typing import Tuple
 
 import model
 from model import *
@@ -37,22 +38,30 @@ def display(game, color):
         print()
 
 
-def send(sock: socket.socket, data: bytes):
-    data_len = str(len(data)).encode("utf-8")
-    data_len += b' ' * (HEADER - len(data_len))
-    sock.sendall(data_len)
+def send(sock: socket.socket, data: bytes, type_=""):
+    header = {
+        "type": type_,
+        "length": len(data)
+    }
+
+    pickled_header = pickle.dumps(header)
+    pickled_header += b' ' * (HEADER - len(pickled_header))
+
+    sock.sendall(pickled_header)
     sock.sendall(data)
 
 
-def recv(sock: socket.socket) -> bytes:
-    header = b''
+def recv(sock: socket.socket) -> Tuple[bytes, str]:
+    pickled_header = b''
     received_length = 0
 
     while HEADER - received_length > 0:
-        header += sock.recv(HEADER - received_length)
-        received_length = len(header)
+        pickled_header += sock.recv(HEADER - received_length)
+        received_length = len(pickled_header)
 
-    data_len = int(header.decode("utf-8"))
+    header = pickle.loads(pickled_header)
+    data_len = header["length"]
+    data_type = header["type"]
     received_length = 0
 
     chunks = []
@@ -63,7 +72,7 @@ def recv(sock: socket.socket) -> bytes:
 
     data = b''.join(chunks)
 
-    return data
+    return data, data_type
 
 
 def main():
@@ -71,11 +80,12 @@ def main():
         s.connect((SERVER, PORT))
 
         # Welcome message
-        msg = recv(s).decode("utf-8")
+        msg, _ = recv(s)
+        msg = msg.decode("utf-8")
         print(msg)
 
         # Message prompting for create or join
-        msg = recv(s)
+        msg, _ = recv(s)
 
         response = ""
 
@@ -86,7 +96,8 @@ def main():
 
         if response.lower() == "create":
             # Message giving room code
-            msg = recv(s).decode("utf-8")
+            msg, _ = recv(s)
+            msg = msg.decode("utf-8")
             print(msg)
             print("Waiting for someone to join...")
         elif response.lower() == "join":
@@ -97,7 +108,8 @@ def main():
                 # Send request for valid codes
                 send(s, bytes("-1", "utf-8"))
                 # Message containing all current room codes
-                room_codes = pickle.loads(recv(s))
+                pickled_room_codes, _ = recv(s)
+                room_codes = pickle.loads(pickled_room_codes)
 
                 if int(response) in room_codes:
                     valid_room_code = True
@@ -107,20 +119,27 @@ def main():
             send(s, bytes(response, "utf-8"))
 
         # Message stating that someone/you joined the room
-        msg = recv(s).decode("utf-8")
+        msg, _ = recv(s)
+        msg = msg.decode("utf-8")
         print(msg)
 
         # Message from inside Room.play(): "LET THE GAME BEGIN"
-        msg = recv(s).decode("utf-8")
+        msg, _ = recv(s)
+        msg = msg.decode("utf-8")
         print(msg)
 
         in_room = True
         while in_room:
             in_game = True
             while in_game:
-                game: model.Game = pickle.loads(recv(s))
-                my_color = recv(s).decode("utf-8")
-                turn_color = recv(s).decode("utf-8")
+                game, _ = recv(s)
+                game: model.Game = pickle.loads(game)
+
+                my_color, _ = recv(s)
+                my_color = my_color.decode("utf-8")
+
+                turn_color, _ = recv(s)
+                turn_color = turn_color.decode("utf-8")
                 turn = -1 if turn_color == "WHITE" else 1
 
                 if game.check_if_game_ended() == CHECKMATE:
@@ -218,7 +237,7 @@ def main():
                     send(s, bytes(square_to_move_from + square_to_move_to + str(promotion_val), "utf-8"))
 
             # Message asking if player wants to play again
-            msg = recv(s)
+            msg, _ = recv(s)
 
             response = input("Rematch [y, N]: ")
             while response.lower() not in ["", "y", "n"]:
@@ -230,7 +249,8 @@ def main():
                 send(s, bytes("n", "utf-8"))
 
             # Rematch decision
-            msg = recv(s).decode("utf-8")
+            msg, _ = recv(s)
+            msg = msg.decode("utf-8")
             print(msg)
             if msg == "Rematch denied!":
                 in_room = False

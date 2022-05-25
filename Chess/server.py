@@ -4,26 +4,35 @@ import socket
 import sys
 import threading
 import time
+from typing import Tuple
 
 from model import *
 
 
-def send(sock: socket.socket, data: bytes):
-    data_len = str(len(data)).encode("utf-8")
-    data_len += b' ' * (HEADER - len(data_len))
-    sock.sendall(data_len)
+def send(sock: socket.socket, data: bytes, type_=""):
+    header = {
+        "type": type_,
+        "length": len(data)
+    }
+
+    pickled_header = pickle.dumps(header)
+    pickled_header += b' ' * (HEADER - len(pickled_header))
+
+    sock.sendall(pickled_header)
     sock.sendall(data)
 
 
-def recv(sock: socket.socket) -> bytes:
-    header = b''
+def recv(sock: socket.socket) -> Tuple[bytes, str]:
+    pickled_header = b''
     received_length = 0
 
     while HEADER - received_length > 0:
-        header += sock.recv(HEADER - received_length)
-        received_length = len(header)
+        pickled_header += sock.recv(HEADER - received_length)
+        received_length = len(pickled_header)
 
-    data_len = int(header.decode("utf-8"))
+    header = pickle.loads(pickled_header)
+    data_len = header["length"]
+    data_type = header["type"]
     received_length = 0
 
     chunks = []
@@ -34,7 +43,7 @@ def recv(sock: socket.socket) -> bytes:
 
     data = b''.join(chunks)
 
-    return data
+    return data, data_type
 
 
 class Room:
@@ -96,7 +105,7 @@ class Room:
 
                     # Send the player who did not just play the final game state
                     send(players[not_color], pickled_game)
-                    send(players[not_color], bytes(colors[self.player1], "utf-8"))
+                    send(players[not_color], bytes(not_color, "utf-8"))
                     send(players[not_color], bytes(color, "utf-8"))
                     in_game = False
 
@@ -104,8 +113,10 @@ class Room:
 
             send(self.player1, bytes("Rematch [y, N]: ", "utf-8"))
             send(self.player2, bytes("Rematch [y, N]: ", "utf-8"))
-            p1_resp = recv(self.player1).decode("utf-8").lower()
-            p2_resp = recv(self.player2).decode("utf-8").lower()
+            p1_resp, _ = recv(self.player1)
+            p2_resp, _ = recv(self.player2)
+            p1_resp = p1_resp.decode("utf-8").lower()
+            p2_resp = p2_resp.decode("utf-8").lower()
 
             if p1_resp == p2_resp == "y":
                 # Rematch accepted
@@ -135,7 +146,8 @@ def handle_new_connection(csock, addr):
     send(csock, bytes("Welcome to Chess!", "utf-8"))
     send(csock, bytes("Do you want to create or join a room: ", "utf-8"))
 
-    response = recv(csock).decode("utf-8").lower()
+    response, _ = recv(csock)
+    response = response.decode("utf-8").lower()
 
     if response == "create":
         new_room_code = random.choice([x for x in range(1, 10000) if x not in [room.code for room in rooms]])
@@ -148,7 +160,8 @@ def handle_new_connection(csock, addr):
         response = "-1"
         while response == "-1":
             # Send all current room codes to client
-            response = recv(csock).decode("utf-8")
+            response, _ = recv(csock)
+            response = response.decode("utf-8")
 
             # Request for valid codes
             if response == "-1":
