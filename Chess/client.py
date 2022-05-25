@@ -79,16 +79,9 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((SERVER, PORT))
 
-        # Welcome message
-        msg, _ = recv(s)
-        msg = msg.decode("utf-8")
-        print(msg)
-
-        # Message prompting for create or join
-        msg, _ = recv(s)
+        print("Welcome to Chess!")
 
         response = ""
-
         while response.lower() not in ["create", "join"]:
             response = input("Enter whether you want to join or create a room [join, create]: ")
 
@@ -107,7 +100,7 @@ def main():
 
                 # Send request for valid codes
                 send(s, bytes("-1", "utf-8"))
-                # Message containing all current room codes
+
                 pickled_room_codes, _ = recv(s)
                 room_codes = pickle.loads(pickled_room_codes)
 
@@ -119,11 +112,6 @@ def main():
             send(s, bytes(response, "utf-8"))
 
         # Message stating that someone/you joined the room
-        msg, _ = recv(s)
-        msg = msg.decode("utf-8")
-        print(msg)
-
-        # Message from inside Room.play(): "LET THE GAME BEGIN"
         msg, _ = recv(s)
         msg = msg.decode("utf-8")
         print(msg)

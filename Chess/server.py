@@ -57,9 +57,6 @@ class Room:
         players = {"WHITE": self.player1, "BLACK": self.player2}
         colors = {self.player1: "WHITE", self.player2: "BLACK"}
 
-        send(self.player1, bytes("LET THE GAME BEGIN", "utf-8"))
-        send(self.player2, bytes("LET THE GAME BEGIN", "utf-8"))
-
         while in_room:
             game = Game()
             in_game = True
@@ -143,9 +140,6 @@ class Room:
 
 
 def handle_new_connection(csock, addr):
-    send(csock, bytes("Welcome to Chess!", "utf-8"))
-    send(csock, bytes("Do you want to create or join a room: ", "utf-8"))
-
     response, _ = recv(csock)
     response = response.decode("utf-8").lower()
 
@@ -157,19 +151,16 @@ def handle_new_connection(csock, addr):
         send(csock, bytes(f"Your room code is {new_room_code}", "utf-8"))
     elif response == "join":
         # Receive valid room code from client
-        response = "-1"
+        response, _ = recv(csock)
+        response = response.decode("utf-8")
+
         while response == "-1":
-            # Send all current room codes to client
+            room_codes = [room.code for room in unfilled]
+            pickled_room_codes = pickle.dumps(room_codes)
+            send(csock, pickled_room_codes)
+
             response, _ = recv(csock)
             response = response.decode("utf-8")
-
-            # Request for valid codes
-            if response == "-1":
-                room_codes = [room.code for room in unfilled]
-                pickled_room_codes = pickle.dumps(room_codes)
-
-                # Send all current room codes
-                send(csock, pickled_room_codes)
 
         for room in unfilled:
             if int(response) == room.code:
