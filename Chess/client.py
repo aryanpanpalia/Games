@@ -120,6 +120,7 @@ def main():
         while in_room:
             in_game = True
             while in_game:
+                _, _ = recv(s)
                 game, _ = recv(s)
                 game: model.Game = pickle.loads(game)
 
@@ -142,7 +143,8 @@ def main():
                     print("Stalemate!")
                     in_game = False
                     continue
-                elif game.is_targeted(BLACK, game.board.white_king.square, check_if_exposes_king=False) or game.is_targeted(WHITE, game.board.black_king.square, check_if_exposes_king=False):
+                elif game.is_targeted(BLACK, game.board.white_king.square, check_if_exposes_king=False) or \
+                        game.is_targeted(WHITE, game.board.black_king.square, check_if_exposes_king=False):
                     print("-" * 5, turn_color, "-" * 5)
                     display(game, my_color)
                     print("Check!")
@@ -224,8 +226,10 @@ def main():
 
                     send(s, bytes(square_to_move_from + square_to_move_to + str(promotion_val), "utf-8"), type_="move")
 
-            # Message asking if player wants to play again
-            msg, _ = recv(s)
+                    if game.check_if_game_ended():
+                        # Server about to send game state again, but it is unnecessary
+                        for _ in range(4):
+                            _ = recv(s)
 
             response = input("Rematch [y, N]: ")
             while response.lower() not in ["", "y", "n"]:

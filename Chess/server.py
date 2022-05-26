@@ -67,10 +67,12 @@ class Room:
             # Send players the initial game state, what color they are, and who's turn it is
             pickled_game = pickle.dumps(game)
 
+            send(self.player1, b'1')
             send(self.player1, pickled_game)
             send(self.player1, bytes(colors[self.player1], "utf-8"))
             send(self.player1, bytes("WHITE", "utf-8"))
 
+            send(self.player2, b'1')
             send(self.player2, pickled_game)
             send(self.player2, bytes(colors[self.player2], "utf-8"))
             send(self.player2, bytes("WHITE", "utf-8"))
@@ -106,6 +108,14 @@ class Room:
                             turn *= -1
                             turn_color = "WHITE" if turn == WHITE else "BLACK"
 
+                            if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
+                                in_game = False
+                                send(self.player1, b'0')
+                                send(self.player2, b'0')
+                            else:
+                                send(self.player1, b'1')
+                                send(self.player2, b'1')
+
                             # Update players with the newest version of the game
                             pickled_game = pickle.dumps(game)
 
@@ -117,12 +127,6 @@ class Room:
                             send(self.player2, bytes(colors[self.player2], "utf-8"))
                             send(self.player2, bytes(turn_color, "utf-8"))
 
-                            # If the game is over, exit out of this in_game loop
-                            if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
-                                in_game = False
-
-            send(self.player1, bytes("Rematch [y, N]: ", "utf-8"))
-            send(self.player2, bytes("Rematch [y, N]: ", "utf-8"))
             p1_resp, _ = recv(self.player1)
             p2_resp, _ = recv(self.player2)
             p1_resp = p1_resp.decode("utf-8").lower()

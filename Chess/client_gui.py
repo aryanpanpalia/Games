@@ -93,13 +93,11 @@ def update_from_server(sock: socket.socket):
         if readable and not game_over:
             sock.setblocking(True)
 
-            maybe_game, _ = recv(sock)
+            in_game, _ = recv(sock)
 
-            # not game. actually message asking for rematch
-            if len(maybe_game) < 2000:
-                return
+            game, _ = recv(sock)
+            game = pickle.loads(game)
 
-            game = pickle.loads(maybe_game)
             my_color, _ = recv(sock)
             my_color = my_color.decode("utf-8")
 
@@ -108,7 +106,11 @@ def update_from_server(sock: socket.socket):
 
             turn = -1 if turn_color == "WHITE" else 1
             my_color_int = -1 if my_color == "WHITE" else 1
+
             sock.setblocking(False)
+
+            if in_game == b'0':
+                return
 
 
 def main():
