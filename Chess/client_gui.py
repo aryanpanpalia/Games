@@ -85,12 +85,12 @@ def recv(sock: socket.socket) -> Tuple[bytes, str]:
 
 
 def update_from_server(sock: socket.socket):
-    global game, my_color, turn_color, turn, my_color_int, game_over
+    global game, my_color, turn_color, turn, my_color_int
     sock.setblocking(False)
-    while not game_over:
+    while True:
         readable, _, _ = select.select([sock], [], [], 1)
 
-        if readable and not game_over:
+        if readable:
             sock.setblocking(True)
 
             in_game, _ = recv(sock)
@@ -166,7 +166,7 @@ def main():
             update_from_server_thread.start()
 
             while in_game:
-                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress, game_over
+                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress
 
                 draw_board(win, game, perspective=my_color_int)
                 pg.display.set_caption(f"Chess [{turn_color}]")
@@ -267,7 +267,6 @@ def main():
                 pg.event.pump()
                 pg.time.Clock().tick(30)
 
-            game_over = True
             pg.quit()
 
             s.setblocking(True)
@@ -287,8 +286,6 @@ def main():
             print(msg)
             if msg == "Rematch denied!":
                 in_room = False
-            else:
-                game_over = False
 
 
 def rss_path(relative_path):
@@ -318,7 +315,5 @@ if __name__ == '__main__':
     promotion_value = -1
 
     move_in_progress = False
-
-    game_over = False
 
     main()
