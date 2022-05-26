@@ -6,6 +6,8 @@ import threading
 import time
 from typing import Tuple
 
+import select
+
 from model import *
 
 
@@ -62,51 +64,62 @@ class Room:
             in_game = True
             turn = WHITE
 
+            # Send players the initial game state, what color they are, and who's turn it is
+            pickled_game = pickle.dumps(game)
+
+            send(self.player1, pickled_game)
+            send(self.player1, bytes(colors[self.player1], "utf-8"))
+            send(self.player1, bytes("WHITE", "utf-8"))
+
+            send(self.player2, pickled_game)
+            send(self.player2, bytes(colors[self.player2], "utf-8"))
+            send(self.player2, bytes("WHITE", "utf-8"))
+
             while in_game:
-                color = "WHITE" if turn == WHITE else "BLACK"
-                not_color = "BLACK" if turn == WHITE else "WHITE"
+                turn_color = "WHITE" if turn == WHITE else "BLACK"
 
-                pickled_game = pickle.dumps(game)
+                readable, _, _ = select.select([self.player1, self.player2], [], [], 1)
 
-                send(self.player1, pickled_game)
-                send(self.player1, bytes(colors[self.player1], "utf-8"))
-                send(self.player1, bytes(color, "utf-8"))
+                for player_sock in readable:
+                    if colors[player_sock] == turn_color:
+                        data, data_type = recv(player_sock)
+                        if data_type == "move":
+                            # Get and apply move
+                            move_string = data.decode("utf-8").lower()
+                            square_to_move_from = move_string[:2]
+                            square_to_move_to = move_string[2:4]
 
-                send(self.player2, pickled_game)
-                send(self.player2, bytes(colors[self.player2], "utf-8"))
-                send(self.player2, bytes(color, "utf-8"))
+                            promotion_value = None
+                            if len(move_string) == 5:
+                                promotion_value = int(move_string[4])
 
-                move_string, _ = recv(players[color])
+                            move = Move(
+                                initial_loc=Square.get_square(square_to_move_from),
+                                final_loc=Square.get_square(square_to_move_to),
+                                piece_moved=game.board.get(square_to_move_from),
+                                piece_captured=game.board.get(square_to_move_to),
+                                promotion=promotion_value
+                            )
+                            move = game.correct_en_passant(move)
+                            game.move(move)
 
-                move_string = move_string.decode("utf-8").lower()
-                square_to_move_from = move_string[:2]
-                square_to_move_to = move_string[2:4]
+                            turn *= -1
+                            turn_color = "WHITE" if turn == WHITE else "BLACK"
 
-                # promotion
-                promotion_value = None
-                if len(move_string) == 5:
-                    promotion_value = int(move_string[4])
+                            # Update players with the newest version of the game
+                            pickled_game = pickle.dumps(game)
 
-                move = Move(
-                    initial_loc=Square.get_square(square_to_move_from),
-                    final_loc=Square.get_square(square_to_move_to),
-                    piece_moved=game.board.get(square_to_move_from),
-                    piece_captured=game.board.get(square_to_move_to),
-                    promotion=promotion_value
-                )
-                move = game.correct_en_passant(move)
-                game.move(move)
+                            send(self.player1, pickled_game)
+                            send(self.player1, bytes(colors[self.player1], "utf-8"))
+                            send(self.player1, bytes(turn_color, "utf-8"))
 
-                if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
-                    pickled_game = pickle.dumps(game)
+                            send(self.player2, pickled_game)
+                            send(self.player2, bytes(colors[self.player2], "utf-8"))
+                            send(self.player2, bytes(turn_color, "utf-8"))
 
-                    # Send the player who did not just play the final game state
-                    send(players[not_color], pickled_game)
-                    send(players[not_color], bytes(not_color, "utf-8"))
-                    send(players[not_color], bytes(color, "utf-8"))
-                    in_game = False
-
-                turn *= -1
+                            # If the game is over, exit out of this in_game loop
+                            if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
+                                in_game = False
 
             send(self.player1, bytes("Rematch [y, N]: ", "utf-8"))
             send(self.player2, bytes("Rematch [y, N]: ", "utf-8"))

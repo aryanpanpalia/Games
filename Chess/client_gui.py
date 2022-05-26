@@ -244,7 +244,7 @@ def main():
 
                         s.setblocking(True)
 
-                        send(s, bytes(square_to_move_from.convert_to_name() + square_to_move_to.convert_to_name() + str(promotion_value), "utf-8"))
+                        send(s, bytes(square_to_move_from.convert_to_name() + square_to_move_to.convert_to_name() + str(promotion_value), "utf-8"), type_="move")
 
                         s.setblocking(False)
 
