@@ -111,15 +111,43 @@ class Square(tuple):
 
 
 class Move:
-    def __init__(self, initial_loc, final_loc, piece_moved, piece_captured=None, promotion=None):
+    def __init__(self, initial_loc, final_loc, piece_moved, piece_captured=None, promotion=None, check=None, mate=None):
         self.initial_loc: Square = Square.get_square(initial_loc)
         self.final_loc: Square = Square.get_square(final_loc)
         self.piece_moved: Piece = piece_moved
         self.piece_captured: Piece = piece_captured
         self.promotion = promotion
+        self.check = check
+        self.mate = mate
 
     def to_algebraic_notation(self):
-        raise NotImplementedError("to_algebraic_notation")
+        notation = ""
+        if self.piece_moved.piece_type == PAWN:
+            if self.piece_captured:
+                notation += f"{self.initial_loc.convert_to_name()[0]}x"
+            notation += self.final_loc.convert_to_name()
+        elif self.piece_moved.piece_type != KING:
+            notation += str(self.piece_moved).upper()
+            if self.piece_captured:
+                notation += "x"
+            notation += self.final_loc.convert_to_name()
+        elif self.piece_moved.piece_type == KING:
+            if abs(self.final_loc.col - self.initial_loc.col) == 2:
+                notation = "O-O"
+            elif abs(self.final_loc.col - self.initial_loc.col) == 3:
+                notation = "O-O-O"
+            else:
+                notation += str(self.piece_moved).upper()
+                if self.piece_captured:
+                    notation += "x"
+                notation += self.final_loc.convert_to_name()
+
+        if self.mate:
+            notation += "#"
+        elif self.check:
+            notation += "+"
+
+        return notation
 
 
 class Board:
