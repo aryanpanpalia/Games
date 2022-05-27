@@ -108,6 +108,15 @@ class Room:
                             turn *= -1
                             turn_color = "WHITE" if turn == WHITE else "BLACK"
 
+                            if game.check_if_game_ended() == CHECKMATE:
+                                game.moves[-1].mate = True
+                            elif turn == WHITE:
+                                if game.is_targeted(WHITE, game.board.black_king.square, check_if_exposes_king=False):
+                                    game.moves[-1].check = True
+                            elif turn == BLACK:
+                                if game.is_targeted(BLACK, game.board.white_king.square, check_if_exposes_king=False):
+                                    game.moves[-1].check = True
+
                             if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
                                 in_game = False
                                 send(self.player1, b'0')

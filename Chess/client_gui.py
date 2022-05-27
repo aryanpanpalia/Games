@@ -243,10 +243,17 @@ def main():
 
                         if game.check_if_game_ended() == CHECKMATE:
                             print(f'Checkmate! {"WHITE" if turn == WHITE else "BLACK"} won!')
+                            game.moves[-1].mate = True
                             in_game = False
                         elif game.check_if_game_ended() == STALEMATE:
                             print("Stalemate!")
                             in_game = False
+                        elif turn == WHITE:
+                            if game.is_targeted(WHITE, game.board.black_king.square, check_if_exposes_king=False):
+                                game.moves[-1].check = True
+                        elif turn == BLACK:
+                            if game.is_targeted(BLACK, game.board.white_king.square, check_if_exposes_king=False):
+                                game.moves[-1].check = True
 
                         render(win, game, perspective=my_color_int)
 
