@@ -291,6 +291,7 @@ class Game:
     def __init__(self):
         self.board = Board()
         self.turn = WHITE
+        self.moves = []
 
     def is_move_legal(self, move: Move, check_if_exposes_king=True) -> bool:
         initial_loc: Square = move.initial_loc
@@ -515,6 +516,7 @@ class Game:
     def move(self, move):
         move = self.correct_en_passant(move)
         self.board.apply_move(move)
+        self.moves.append(move)
         self.turn *= -1
 
     def generate_legal_squares_to_move_to_for(self, piece: Piece):
