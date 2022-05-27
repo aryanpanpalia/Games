@@ -1,3 +1,6 @@
+import os
+import sys
+
 import pygame as pg
 
 from model import *
@@ -7,24 +10,41 @@ def is_valid_input(square_name: str):
     return len(square_name) == 2 and square_name[0].lower() in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] and square_name[1] in ['1', '2', '3', '4', '5', '6', '7', '8']
 
 
-def draw_board(win, game, perspective=WHITE):
-    font = pg.font.SysFont("Comic Sans MS", 50)
+def draw_board(x, y, width, height, win, game, perspective):
+    global square_to_move_from
+    square_width = width // 8
+    square_height = height // 8
     for row in range(8):
         for col in range(8):
             white = (row + col) % 2 == 0
-            square = pg.Rect(col * 100, row * 100, 100, 100)
+            square = pg.Rect(col * square_width + x, row * square_height + y, square_width, square_height)
             pg.draw.rect(win, (9 * 16 + 10, 7 * 16 + 11, 4 * 16 + 15) if white else (3 * 16 + 7, 1 * 16 + 13, 1 * 16), square)
 
     for piece in game.board.pieces:
         if not piece.captured:
-            piece_text = font.render(str(piece), True, (0, 0, 0))
+            piece_image = piece_images[str(piece)]
             col = piece.square.col
             row = piece.square.row
 
             if perspective == WHITE:
-                win.blit(piece_text, (col * 100 + 35, row * 100 + 15))
+                win.blit(piece_image, (col * square_width + x, row * square_height + y))
             else:
-                win.blit(piece_text, ((7 - col) * 100 + 35, (7 - row) * 100 + 15))
+                win.blit(piece_image, ((7 - col) * square_width + x, (7 - row) * square_height + y))
+
+    if square_to_move_from:
+        piece = game.board.get(square_to_move_from)
+        for square in game.generate_legal_squares_to_move_to_for(piece):
+            col = square.col
+            row = square.row
+
+            if perspective == WHITE:
+                pg.draw.circle(win, (64, 64, 64), (col * square_width + x + 50, row * square_height + y + 50), 20)
+            else:
+                pg.draw.circle(win, (64, 64, 64), ((7 - col) * square_width + x + 50, (7 - row) * square_height + y + 50), 20)
+
+
+def render(win, game, perspective=WHITE):
+    draw_board(BOARD_OFFSET_X, BOARD_OFFSET_Y, BOARD_WIDTH, BOARD_HEIGHT, win, game, perspective)
 
     pg.display.update()
 
@@ -32,17 +52,19 @@ def draw_board(win, game, perspective=WHITE):
 def main():
     pg.init()
     pg.display.set_caption("Chess")
-    win = pg.display.set_mode((800, 800))
+    win = pg.display.set_mode((WIDTH, HEIGHT))
 
     game = Game()
     running = True
+
+    global square_to_move_from
 
     square_to_move_from = None
     square_to_move_to = None
     turn = WHITE
 
     while running:
-        draw_board(win, game, perspective=turn)
+        render(win, game, perspective=turn)
 
         events = pg.event.get()
         for event in events:
@@ -50,30 +72,29 @@ def main():
                 running = False
             elif event.type == pg.MOUSEBUTTONDOWN:
                 pos = event.dict['pos']
-                row = pos[1] // 100
-                col = pos[0] // 100
+                row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
+                col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
 
                 if turn == WHITE:
                     square = Square((row, col))
                 else:
                     square = Square((7 - row, 7 - col))
 
-                if square_to_move_from is None:
-                    if game.board.get(square) and game.board.get(square).color == turn:
-                        square_to_move_from = square
-                elif square_to_move_to is None:
+                if game.board.get(square) and game.board.get(square).color == turn:
+                    square_to_move_from = square
+                elif not square_to_move_to:
                     square_to_move_to = square
             elif event.type == pg.MOUSEBUTTONUP:
                 pos = event.dict['pos']
-                row = pos[1] // 100
-                col = pos[0] // 100
+                row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
+                col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
 
                 if turn == WHITE:
                     square = Square((row, col))
                 else:
                     square = Square((7 - row, 7 - col))
 
-                if square_to_move_from is not None and square_to_move_to is None and square_to_move_from != square:
+                if square_to_move_from and not square_to_move_to and square_to_move_from != square:
                     square_to_move_to = square
 
         if square_to_move_from is not None and square_to_move_to is not None:
@@ -114,5 +135,25 @@ def main():
             square_to_move_to = None
 
 
+def rss_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
 if __name__ == '__main__':
+    WIDTH = 1300
+    HEIGHT = 900
+
+    BOARD_OFFSET_X = 20
+    BOARD_OFFSET_Y = 50
+    BOARD_WIDTH = 800
+    BOARD_HEIGHT = 800
+
+    piece_images = {image[1]: pg.transform.smoothscale(pg.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
+
+    square_to_move_from = None
     main()
