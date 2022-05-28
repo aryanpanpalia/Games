@@ -86,11 +86,14 @@ def main():
         events = pg.event.get()
         for event in events:
             if event.type == pg.QUIT:
-                running = False
+                quit(-1)
             elif event.type == pg.MOUSEBUTTONDOWN:
                 pos = event.dict['pos']
                 row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
                 col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
+
+                if not (0 <= row < 8 and 0 <= col < 8):
+                    continue
 
                 if turn == WHITE:
                     square = Square((row, col))
@@ -105,6 +108,9 @@ def main():
                 pos = event.dict['pos']
                 row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
                 col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
+
+                if not (0 <= row < 8 and 0 <= col < 8):
+                    continue
 
                 if turn == WHITE:
                     square = Square((row, col))
