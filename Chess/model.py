@@ -547,7 +547,7 @@ class Game:
             diffs.extend([[0, a] for a in range(-7, 8) if a != 0])
             all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
         elif piece.piece_type == KING:
-            diffs = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+            diffs = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1], [0, 2], [0, -3]]
             all_squares = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
 
         for square in all_squares:
@@ -587,7 +587,7 @@ class Game:
                 diffs.extend([[0, a] for a in range(-7, 8) if a != 0])
                 final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
             elif piece.piece_type == KING:
-                diffs = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+                diffs = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1], [0, 2], [0, -3]]
                 final_locs = [piece.square.get_diff(diff) for diff in diffs if Square.is_valid(piece.square.get_diff(diff))]
 
             for final_loc in final_locs:
