@@ -15,6 +15,10 @@ def is_valid_input(square_name: str):
     return len(square_name) == 2 and square_name[0].lower() in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] and square_name[1] in ['1', '2', '3', '4', '5', '6', '7', '8']
 
 
+def chunker(seq, size):
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+
 def draw_board(x, y, width, height, win, game, perspective):
     square_width = width // 8
     square_height = height // 8
@@ -47,8 +51,21 @@ def draw_board(x, y, width, height, win, game, perspective):
                 pg.draw.circle(win, (64, 64, 64), ((7 - col) * square_width + x + 50, (7 - row) * square_height + y + 50), 20)
 
 
+def draw_move_list(x, y, width, height, win, game):
+    font = pg.font.SysFont("bahnschrift", 20)
+    square = pg.Rect(x, y, width, height)
+    pg.draw.rect(win, (50, 50, 50), square)
+
+    for i, group in enumerate(chunker(game.moves, 2)):
+        win.blit(font.render(f"{i + 1}. ", True, (200, 200, 200)), (x + 10, y + 10 + 20 * i))
+        win.blit(font.render(group[0].to_algebraic_notation(), True, (200, 200, 200)), (x + 50, y + 10 + + 20 * i))
+        if len(group) == 2:
+            win.blit(font.render(group[1].to_algebraic_notation(), True, (200, 200, 200)), (x + 150, y + 10 + 20 * i))
+
+
 def render(win, game, perspective=WHITE):
     draw_board(BOARD_OFFSET_X, BOARD_OFFSET_Y, BOARD_WIDTH, BOARD_HEIGHT, win, game, perspective)
+    draw_move_list(MOVE_LIST_OFFSET_X, MOVE_LIST_OFFSET_Y, MOVE_LIST_WIDTH, MOVE_LIST_HEIGHT, win, game)
 
     pg.display.update()
 
@@ -321,6 +338,11 @@ if __name__ == '__main__':
     BOARD_OFFSET_Y = 50
     BOARD_WIDTH = 800
     BOARD_HEIGHT = 800
+
+    MOVE_LIST_OFFSET_X = BOARD_OFFSET_X + BOARD_WIDTH + 20
+    MOVE_LIST_OFFSET_Y = 50
+    MOVE_LIST_WIDTH = 440
+    MOVE_LIST_HEIGHT = 800
 
     piece_images = {image[1]: pg.transform.smoothscale(pg.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 
