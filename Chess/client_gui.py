@@ -56,19 +56,18 @@ def draw_move_list(x, y, width, height, win, game):
     rect = pg.Rect(x, y, width, height)
     pg.draw.rect(win, (40, 40, 40), rect)
 
-    line_height = height / NUM_TURNS_IN_MOVE_LIST
-    for i, group in enumerate(chunker(game.moves, 2)):
-        if y + line_height * i + line_height <= y + height:
-            rect = pg.Rect(x, y + line_height * i, width, line_height)
+    for i, group in enumerate(chunker(game.moves[MOVE_LIST_SCROLL * 2:], 2)):
+        if round(y + MOVE_LIST_LINE_HEIGHT * i + MOVE_LIST_LINE_HEIGHT, 3) <= y + height:
+            rect = pg.Rect(x, y + MOVE_LIST_LINE_HEIGHT * i, width, MOVE_LIST_LINE_HEIGHT)
             if i % 2 == 0:
                 pg.draw.rect(win, (30, 30, 30), rect)
             else:
                 pg.draw.rect(win, (50, 50, 50), rect)
 
-            win.blit(font.render(f"{i + 1}. ", True, (200, 200, 200)), (x + 10, y + 3 + line_height * i))
-            win.blit(font.render(group[0].to_algebraic_notation(), True, (200, 200, 200)), (x + 50, y + 3 + line_height * i))
+            win.blit(font.render(f"{i + 1 + MOVE_LIST_SCROLL}. ", True, (200, 200, 200)), (x + 10, y + 3 + MOVE_LIST_LINE_HEIGHT * i))
+            win.blit(font.render(group[0].to_algebraic_notation(), True, (200, 200, 200)), (x + 50, y + 3 + MOVE_LIST_LINE_HEIGHT * i))
             if len(group) == 2:
-                win.blit(font.render(group[1].to_algebraic_notation(), True, (200, 200, 200)), (x + 150, y + 3 + line_height * i))
+                win.blit(font.render(group[1].to_algebraic_notation(), True, (200, 200, 200)), (x + 150, y + 3 + MOVE_LIST_LINE_HEIGHT * i))
 
 
 def render(win, game, perspective=WHITE):
@@ -199,7 +198,7 @@ def main():
             update_from_server_thread.start()
 
             while in_game:
-                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress
+                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress, MOVE_LIST_SCROLL
 
                 render(win, game, perspective=my_color_int)
                 pg.display.set_caption(f"Chess [{turn_color}]")
@@ -216,38 +215,49 @@ def main():
                     if event.type == pg.QUIT:
                         quit(-1)
                     elif event.type == pg.MOUSEBUTTONDOWN:
-                        pos = event.dict['pos']
-                        row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
-                        col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
+                        if event.dict['button'] in [1, 2, 3]:
+                            pos = event.dict['pos']
+                            row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
+                            col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
 
-                        if not (0 <= row < 8 and 0 <= col < 8):
-                            continue
+                            if not (0 <= row < 8 and 0 <= col < 8):
+                                continue
 
-                        if my_color_int == WHITE:
-                            square = Square((row, col))
-                        else:
-                            square = Square((7 - row, 7 - col))
+                            if my_color_int == WHITE:
+                                square = Square((row, col))
+                            else:
+                                square = Square((7 - row, 7 - col))
 
-                        if game.board.get(square) and game.board.get(square).color == my_color_int:
-                            square_to_move_from = square
-                        elif not square_to_move_to:
-                            square_to_move_to = square
+                            if game.board.get(square) and game.board.get(square).color == my_color_int:
+                                square_to_move_from = square
+                            elif not square_to_move_to:
+                                square_to_move_to = square
+
+                        elif event.dict['button'] == 4:
+                            if MOVE_LIST_OFFSET_X < event.pos[0] < MOVE_LIST_OFFSET_X + MOVE_LIST_WIDTH and MOVE_LIST_OFFSET_Y < event.pos[1] < MOVE_LIST_OFFSET_Y + MOVE_LIST_HEIGHT:
+                                if MOVE_LIST_SCROLL > 0:
+                                    MOVE_LIST_SCROLL -= 1
+                        elif event.dict['button'] == 5:
+                            if MOVE_LIST_OFFSET_X < event.pos[0] < MOVE_LIST_OFFSET_X + MOVE_LIST_WIDTH and MOVE_LIST_OFFSET_Y < event.pos[1] < MOVE_LIST_OFFSET_Y + MOVE_LIST_HEIGHT:
+                                if (len(game.moves) - 2 * MOVE_LIST_SCROLL) / 2 > NUM_TURNS_IN_MOVE_LIST:
+                                    MOVE_LIST_SCROLL += 1
 
                     elif event.type == pg.MOUSEBUTTONUP:
-                        pos = event.dict['pos']
-                        row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
-                        col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
+                        if event.dict['button'] in [1, 2, 3]:
+                            pos = event.dict['pos']
+                            row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
+                            col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
 
-                        if not (0 <= row < 8 and 0 <= col < 8):
-                            continue
+                            if not (0 <= row < 8 and 0 <= col < 8):
+                                continue
 
-                        if my_color_int == WHITE:
-                            square = Square((row, col))
-                        else:
-                            square = Square((7 - row, 7 - col))
+                            if my_color_int == WHITE:
+                                square = Square((row, col))
+                            else:
+                                square = Square((7 - row, 7 - col))
 
-                        if square_to_move_from and not square_to_move_to and square_to_move_from != square:
-                            square_to_move_to = square
+                            if square_to_move_from and not square_to_move_to and square_to_move_from != square:
+                                square_to_move_to = square
 
                 if square_to_move_from and square_to_move_to and my_color_int == turn:
                     # Promotion
@@ -360,6 +370,8 @@ if __name__ == '__main__':
     MOVE_LIST_WIDTH = 440
     MOVE_LIST_HEIGHT = 800
     NUM_TURNS_IN_MOVE_LIST = 25
+    MOVE_LIST_LINE_HEIGHT = MOVE_LIST_HEIGHT / NUM_TURNS_IN_MOVE_LIST
+    MOVE_LIST_SCROLL = 0
 
     piece_images = {image[1]: pg.transform.smoothscale(pg.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 
