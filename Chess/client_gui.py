@@ -282,6 +282,9 @@ def main():
 
                     if move_success:
                         game.move(move)
+                        if (len(game.moves) - 2 * MOVE_LIST_SCROLL) / 2 > NUM_TURNS_IN_MOVE_LIST:
+                            MOVE_LIST_SCROLL += 1
+
                         move_in_progress = True
 
                         if game.check_if_game_ended() == CHECKMATE:
