@@ -56,17 +56,19 @@ def draw_move_list(x, y, width, height, win, game):
     rect = pg.Rect(x, y, width, height)
     pg.draw.rect(win, (40, 40, 40), rect)
 
+    line_height = height / NUM_TURNS_IN_MOVE_LIST
     for i, group in enumerate(chunker(game.moves, 2)):
-        rect = pg.Rect(x, y + 30 * i, width, 30)
-        if i % 2 == 0:
-            pg.draw.rect(win, (30, 30, 30), rect)
-        else:
-            pg.draw.rect(win, (50, 50, 50), rect)
+        if y + line_height * i + line_height <= y + height:
+            rect = pg.Rect(x, y + line_height * i, width, line_height)
+            if i % 2 == 0:
+                pg.draw.rect(win, (30, 30, 30), rect)
+            else:
+                pg.draw.rect(win, (50, 50, 50), rect)
 
-        win.blit(font.render(f"{i + 1}. ", True, (200, 200, 200)), (x + 10, y + 3 + 30 * i))
-        win.blit(font.render(group[0].to_algebraic_notation(), True, (200, 200, 200)), (x + 50, y + 3 + 30 * i))
-        if len(group) == 2:
-            win.blit(font.render(group[1].to_algebraic_notation(), True, (200, 200, 200)), (x + 150, y + 3 + 30 * i))
+            win.blit(font.render(f"{i + 1}. ", True, (200, 200, 200)), (x + 10, y + 3 + line_height * i))
+            win.blit(font.render(group[0].to_algebraic_notation(), True, (200, 200, 200)), (x + 50, y + 3 + line_height * i))
+            if len(group) == 2:
+                win.blit(font.render(group[1].to_algebraic_notation(), True, (200, 200, 200)), (x + 150, y + 3 + line_height * i))
 
 
 def render(win, game, perspective=WHITE):
@@ -357,6 +359,7 @@ if __name__ == '__main__':
     MOVE_LIST_OFFSET_Y = 50
     MOVE_LIST_WIDTH = 440
     MOVE_LIST_HEIGHT = 800
+    NUM_TURNS_IN_MOVE_LIST = 25
 
     piece_images = {image[1]: pg.transform.smoothscale(pg.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 
