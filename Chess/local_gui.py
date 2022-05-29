@@ -49,17 +49,25 @@ def draw_board(x, y, width, height, win, game, perspective):
 
 def draw_move_list(x, y, width, height, win, game):
     font = pg.font.SysFont("bahnschrift", 20)
-    square = pg.Rect(x, y, width, height)
-    pg.draw.rect(win, (50, 50, 50), square)
+    rect = pg.Rect(x, y, width, height)
+    pg.draw.rect(win, (40, 40, 40), rect)
 
     for i, group in enumerate(chunker(game.moves, 2)):
-        win.blit(font.render(f"{i + 1}. ", True, (200, 200, 200)), (x + 10, y + 10 + 20 * i))
-        win.blit(font.render(group[0].to_algebraic_notation(), True, (200, 200, 200)), (x + 50, y + 10 + + 20 * i))
+        rect = pg.Rect(x, y + 30 * i, width, 30)
+        if i % 2 == 0:
+            pg.draw.rect(win, (30, 30, 30), rect)
+        else:
+            pg.draw.rect(win, (50, 50, 50), rect)
+
+        win.blit(font.render(f"{i + 1}. ", True, (200, 200, 200)), (x + 10, y + 3 + 30 * i))
+        win.blit(font.render(group[0].to_algebraic_notation(), True, (200, 200, 200)), (x + 50, y + 3 + 30 * i))
         if len(group) == 2:
-            win.blit(font.render(group[1].to_algebraic_notation(), True, (200, 200, 200)), (x + 150, y + 10 + 20 * i))
+            win.blit(font.render(group[1].to_algebraic_notation(), True, (200, 200, 200)), (x + 150, y + 3 + 30 * i))
 
 
 def render(win, game, perspective=WHITE):
+    win.fill((60, 60, 60))
+
     draw_board(BOARD_OFFSET_X, BOARD_OFFSET_Y, BOARD_WIDTH, BOARD_HEIGHT, win, game, perspective)
     draw_move_list(MOVE_LIST_OFFSET_X, MOVE_LIST_OFFSET_Y, MOVE_LIST_WIDTH, MOVE_LIST_HEIGHT, win, game)
 
