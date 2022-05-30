@@ -99,21 +99,21 @@ def main():
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.dict['button'] in [1, 2, 3]:
                     pos = event.dict['pos']
-                    row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
-                    col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
 
-                    if not (0 <= row < 8 and 0 <= col < 8):
-                        continue
+                    if BOARD_OFFSET_X < pos[0] < BOARD_OFFSET_X + BOARD_WIDTH and BOARD_OFFSET_Y < pos[1] < BOARD_OFFSET_Y + BOARD_HEIGHT:
+                        row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
+                        col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
 
-                    if turn == WHITE:
-                        square = Square((row, col))
-                    else:
-                        square = Square((7 - row, 7 - col))
+                        if turn == WHITE:
+                            square = Square((row, col))
+                        else:
+                            square = Square((7 - row, 7 - col))
 
-                    if game.board.get(square) and game.board.get(square).color == turn:
-                        square_to_move_from = square
-                    elif not square_to_move_to:
-                        square_to_move_to = square
+                        if game.board.get(square) and game.board.get(square).color == turn:
+                            square_to_move_from = square
+                        elif not square_to_move_to:
+                            square_to_move_to = square
+
                 elif event.dict['button'] == 4:
                     if MOVE_LIST_OFFSET_X < event.pos[0] < MOVE_LIST_OFFSET_X + MOVE_LIST_WIDTH and MOVE_LIST_OFFSET_Y < event.pos[1] < MOVE_LIST_OFFSET_Y + MOVE_LIST_HEIGHT:
                         if MOVE_LIST_SCROLL > 0:
@@ -126,19 +126,18 @@ def main():
             elif event.type == pg.MOUSEBUTTONUP:
                 if event.dict['button'] in [1, 2, 3]:
                     pos = event.dict['pos']
-                    row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
-                    col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
 
-                    if not (0 <= row < 8 and 0 <= col < 8):
-                        continue
+                    if BOARD_OFFSET_X < pos[0] < BOARD_OFFSET_X + BOARD_WIDTH and BOARD_OFFSET_Y < pos[1] < BOARD_OFFSET_Y + BOARD_HEIGHT:
+                        row = (pos[1] - BOARD_OFFSET_Y) // (BOARD_WIDTH // 8)
+                        col = (pos[0] - BOARD_OFFSET_X) // (BOARD_HEIGHT // 8)
 
-                    if turn == WHITE:
-                        square = Square((row, col))
-                    else:
-                        square = Square((7 - row, 7 - col))
+                        if turn == WHITE:
+                            square = Square((row, col))
+                        else:
+                            square = Square((7 - row, 7 - col))
 
-                    if square_to_move_from and not square_to_move_to and square_to_move_from != square:
-                        square_to_move_to = square
+                        if square_to_move_from and not square_to_move_to and square_to_move_from != square:
+                            square_to_move_to = square
 
         if square_to_move_from is not None and square_to_move_to is not None:
             # Promotion
