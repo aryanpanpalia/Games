@@ -18,6 +18,9 @@ def send(sock: socket.socket, data: bytes, type_=""):
     }
 
     pickled_header = pickle.dumps(header)
+
+    assert len(pickled_header) <= HEADER, "Length of un-padded header is greater than maximum header size"
+
     pickled_header += b' ' * (HEADER - len(pickled_header))
 
     sock.sendall(pickled_header)
@@ -64,18 +67,22 @@ class Room:
             in_game = True
             turn = WHITE
 
-            # Send players the initial game state, what color they are, and who's turn it is
-            pickled_game = pickle.dumps(game)
+            p1_game_state = {
+                "in_game": in_game,
+                "game": game,
+                "player_color": colors[self.player1],
+                "turn_color": "WHITE"
+            }
 
-            send(self.player1, b'1')
-            send(self.player1, pickled_game)
-            send(self.player1, bytes(colors[self.player1], "utf-8"))
-            send(self.player1, bytes("WHITE", "utf-8"))
+            p2_game_state = {
+                "in_game": in_game,
+                "game": game,
+                "player_color": colors[self.player2],
+                "turn_color": "WHITE"
+            }
 
-            send(self.player2, b'1')
-            send(self.player2, pickled_game)
-            send(self.player2, bytes(colors[self.player2], "utf-8"))
-            send(self.player2, bytes("WHITE", "utf-8"))
+            send(self.player1, pickle.dumps(p1_game_state), type_="gamestate")
+            send(self.player2, pickle.dumps(p2_game_state), type_="gamestate")
 
             while in_game:
                 turn_color = "WHITE" if turn == WHITE else "BLACK"
@@ -119,22 +126,23 @@ class Room:
 
                             if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
                                 in_game = False
-                                send(self.player1, b'0')
-                                send(self.player2, b'0')
-                            else:
-                                send(self.player1, b'1')
-                                send(self.player2, b'1')
 
-                            # Update players with the newest version of the game
-                            pickled_game = pickle.dumps(game)
+                            p1_game_state = {
+                                "in_game": in_game,
+                                "game": game,
+                                "player_color": colors[self.player1],
+                                "turn_color": turn_color
+                            }
 
-                            send(self.player1, pickled_game)
-                            send(self.player1, bytes(colors[self.player1], "utf-8"))
-                            send(self.player1, bytes(turn_color, "utf-8"))
+                            p2_game_state = {
+                                "in_game": in_game,
+                                "game": game,
+                                "player_color": colors[self.player2],
+                                "turn_color": turn_color
+                            }
 
-                            send(self.player2, pickled_game)
-                            send(self.player2, bytes(colors[self.player2], "utf-8"))
-                            send(self.player2, bytes(turn_color, "utf-8"))
+                            send(self.player1, pickle.dumps(p1_game_state), type_="gamestate")
+                            send(self.player2, pickle.dumps(p2_game_state), type_="gamestate")
 
             p1_resp, _ = recv(self.player1)
             p2_resp, _ = recv(self.player2)

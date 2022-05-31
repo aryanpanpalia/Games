@@ -149,24 +149,21 @@ def update_from_server(sock: socket.socket):
         if readable:
             sock.setblocking(True)
 
-            in_game, _ = recv(sock)
+            data, data_type = recv(sock)
+            if data_type == "gamestate":
+                game_state = pickle.loads(data)
+                in_game = game_state["in_game"]
+                game = game_state["game"]
+                my_color = game_state["player_color"]
+                turn_color = game_state["turn_color"]
 
-            game, _ = recv(sock)
-            game = pickle.loads(game)
+                turn = -1 if turn_color == "WHITE" else 1
+                my_color_int = -1 if my_color == "WHITE" else 1
 
-            my_color, _ = recv(sock)
-            my_color = my_color.decode("utf-8")
-
-            turn_color, _ = recv(sock)
-            turn_color = turn_color.decode("utf-8")
-
-            turn = -1 if turn_color == "WHITE" else 1
-            my_color_int = -1 if my_color == "WHITE" else 1
+                if not in_game:
+                    return
 
             sock.setblocking(False)
-
-            if in_game == b'0':
-                return
 
 
 def main():
