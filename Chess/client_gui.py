@@ -70,11 +70,35 @@ def draw_move_list(x, y, width, height, win, game):
                 win.blit(font.render(group[1].to_algebraic_notation(), True, (200, 200, 200)), (x + 150, y + 3 + MOVE_LIST_LINE_HEIGHT * i))
 
 
+def draw_draw_button(x, y, width, height, win):
+    font = pg.font.SysFont("bahnschrift", 20)
+
+    draw_rect = pg.Rect(x, y, width, height)
+    pg.draw.rect(win, (30, 30, 30), draw_rect)
+
+    # text should start at start_x + 0.5 * box_width - 0.5 * text_width, start_y + 0.5 * box_height - 0.5 * text_height so that its centered with respect to function parameters
+    # text has width of 48 and height of 24
+    win.blit(font.render(f"Draw", True, (200, 200, 200)), (x + 0.5 * width - 24, y + 0.5 * height - 12))
+
+
+def draw_resign_buttons(x, y, width, height, win):
+    font = pg.font.SysFont("bahnschrift", 20)
+
+    resign_rect = pg.Rect(x, y, width, height)
+    pg.draw.rect(win, (30, 30, 30), resign_rect)
+
+    # text should start at start_x + 0.5 * box_width - 0.5 * text_width, start_y + 0.5 * box_height - 0.5 * text_height so that its centered with respect to function parameters
+    # text has width of 61 and height of 25 and needs to be centered in a box with (start_x, start_y, box_width, box_height) = (x + width / 2 + 5, y, width / 2 - 5, height)
+    win.blit(font.render(f"Resign", True, (200, 200, 200)), (x + 0.5 * width - 30.5, y + 0.5 * height - 12.5))
+
+
 def render(win, game, perspective=WHITE):
     win.fill((60, 60, 60))
 
     draw_board(BOARD_OFFSET_X, BOARD_OFFSET_Y, BOARD_WIDTH, BOARD_HEIGHT, win, game, perspective)
     draw_move_list(MOVE_LIST_OFFSET_X, MOVE_LIST_OFFSET_Y, MOVE_LIST_WIDTH, MOVE_LIST_HEIGHT, win, game)
+    draw_draw_button(DRAW_BUTTON_OFFSET_X, DRAW_BUTTON_OFFSET_Y, DRAW_BUTTON_WIDTH, DRAW_BUTTON_HEIGHT, win)
+    draw_resign_buttons(RESIGN_BUTTON_OFFSET_X, RESIGN_BUTTON_OFFSET_Y, RESIGN_BUTTON_WIDTH, RESIGN_BUTTON_HEIGHT, win)
 
     pg.display.update()
 
@@ -368,10 +392,20 @@ if __name__ == '__main__':
     MOVE_LIST_OFFSET_X = BOARD_OFFSET_X + BOARD_WIDTH + 20
     MOVE_LIST_OFFSET_Y = 50
     MOVE_LIST_WIDTH = 440
-    MOVE_LIST_HEIGHT = 800
+    MOVE_LIST_HEIGHT = 730
     NUM_TURNS_IN_MOVE_LIST = 25
     MOVE_LIST_LINE_HEIGHT = MOVE_LIST_HEIGHT / NUM_TURNS_IN_MOVE_LIST
     MOVE_LIST_SCROLL = 0
+
+    DRAW_BUTTON_OFFSET_X = BOARD_OFFSET_X + BOARD_WIDTH + 20
+    DRAW_BUTTON_OFFSET_Y = MOVE_LIST_OFFSET_Y + MOVE_LIST_HEIGHT + 20
+    DRAW_BUTTON_WIDTH = 210
+    DRAW_BUTTON_HEIGHT = 50
+
+    RESIGN_BUTTON_OFFSET_X = DRAW_BUTTON_OFFSET_X + DRAW_BUTTON_WIDTH + 20
+    RESIGN_BUTTON_OFFSET_Y = MOVE_LIST_OFFSET_Y + MOVE_LIST_HEIGHT + 20
+    RESIGN_BUTTON_WIDTH = 210
+    RESIGN_BUTTON_HEIGHT = 50
 
     piece_images = {image[1]: pg.transform.smoothscale(pg.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 
