@@ -142,7 +142,8 @@ def recv(sock: socket.socket) -> Tuple[bytes, str]:
 
 def update_from_server(sock: socket.socket):
     global game, my_color, turn_color, turn, my_color_int
-    while True:
+    in_game = True
+    while in_game:
         readable, _, _ = select.select([sock], [], [], 1)
 
         if readable:
@@ -156,9 +157,6 @@ def update_from_server(sock: socket.socket):
 
                 turn = -1 if turn_color == "WHITE" else 1
                 my_color_int = -1 if my_color == "WHITE" else 1
-
-                if not in_game:
-                    return
 
 
 def main():
