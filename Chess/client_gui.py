@@ -142,13 +142,10 @@ def recv(sock: socket.socket) -> Tuple[bytes, str]:
 
 def update_from_server(sock: socket.socket):
     global game, my_color, turn_color, turn, my_color_int
-    sock.setblocking(False)
     while True:
         readable, _, _ = select.select([sock], [], [], 1)
 
         if readable:
-            sock.setblocking(True)
-
             data, data_type = recv(sock)
             if data_type == "gamestate":
                 game_state = pickle.loads(data)
@@ -162,8 +159,6 @@ def update_from_server(sock: socket.socket):
 
                 if not in_game:
                     return
-
-            sock.setblocking(False)
 
 
 def main():
@@ -321,11 +316,7 @@ def main():
 
                         render(win, game, perspective=my_color_int)
 
-                        s.setblocking(True)
-
                         send(s, bytes(square_to_move_from.convert_to_name() + square_to_move_to.convert_to_name() + str(promotion_value), "utf-8"), type_="move")
-
-                        s.setblocking(False)
 
                         move_in_progress = False
 
@@ -344,8 +335,6 @@ def main():
                 pg.time.Clock().tick(30)
 
             pg.quit()
-
-            s.setblocking(True)
 
             response = input("Rematch [y, N]: ")
             while response.lower() not in ["", "y", "n"]:
