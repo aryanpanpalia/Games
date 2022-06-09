@@ -172,9 +172,9 @@ def recv(sock: socket.socket) -> Tuple[bytes, str]:
 
 
 def update_from_server(sock: socket.socket):
-    global game, my_color, turn_color, turn, my_color_int
+    global game, my_color, turn_color, turn, my_color_int, DRAW_STATE
     in_game = True
-    while in_game:
+    while in_game and DRAW_STATE != 2:
         readable, _, _ = select.select([sock], [], [], 1)
 
         if readable:
@@ -188,6 +188,13 @@ def update_from_server(sock: socket.socket):
 
                 turn = -1 if turn_color == "WHITE" else 1
                 my_color_int = -1 if my_color == "WHITE" else 1
+            elif data_type == "draw_offer":
+                DRAW_STATE = 1
+            elif data_type == "draw_accept":
+                DRAW_STATE = 2
+                in_game = False
+            elif data_type == "draw_reject":
+                DRAW_STATE = -1
 
 
 def main():
@@ -243,7 +250,7 @@ def main():
             update_from_server_thread.start()
 
             while in_game:
-                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress, MOVE_LIST_SCROLL
+                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress, MOVE_LIST_SCROLL, DRAW_STATE
 
                 render(win, game, perspective=my_color_int)
                 pg.display.set_caption(f"Chess [{turn_color}]")
@@ -253,6 +260,9 @@ def main():
                     break
                 elif game.check_if_game_ended() == STALEMATE:
                     print("Stalemate!")
+                    break
+                elif DRAW_STATE == 2:
+                    print("Draw!")
                     break
 
                 events = pg.event.get()
@@ -300,6 +310,26 @@ def main():
 
                                 if square_to_move_from and not square_to_move_to and square_to_move_from != square:
                                     square_to_move_to = square
+
+                            elif DRAW_BUTTON_OFFSET_X < pos[0] < DRAW_BUTTON_OFFSET_X + DRAW_BUTTON_WIDTH and \
+                                    DRAW_BUTTON_OFFSET_Y < pos[1] < DRAW_BUTTON_OFFSET_Y + DRAW_BUTTON_HEIGHT and \
+                                    DRAW_STATE == -1:
+                                DRAW_STATE = 0
+                                send(s, bytes("draw_offer", "utf-8"), type_="draw_offer")
+
+                            elif DRAW_ACCEPT_BUTTON_OFFSET_X < pos[0] < DRAW_ACCEPT_BUTTON_OFFSET_X + DRAW_ACCEPT_BUTTON_WIDTH and \
+                                    DRAW_ACCEPT_BUTTON_OFFSET_Y < pos[1] < DRAW_ACCEPT_BUTTON_OFFSET_Y + DRAW_ACCEPT_BUTTON_HEIGHT and \
+                                    DRAW_STATE == 1:
+                                DRAW_STATE = 2
+                                send(s, bytes("draw_accept", "utf-8"), type_="draw_accept")
+                                print("Draw!")
+                                in_game = False
+
+                            elif DRAW_REJECT_BUTTON_OFFSET_X < pos[0] < DRAW_REJECT_BUTTON_OFFSET_X + DRAW_REJECT_BUTTON_WIDTH and \
+                                    DRAW_REJECT_BUTTON_OFFSET_Y < pos[1] < DRAW_REJECT_BUTTON_OFFSET_Y + DRAW_REJECT_BUTTON_HEIGHT and \
+                                    DRAW_STATE == 1:
+                                DRAW_STATE = -1
+                                send(s, bytes("draw_reject", "utf-8"), type_="draw_reject")
 
                 if square_to_move_from and square_to_move_to and my_color_int == turn:
                     # Promotion
@@ -380,6 +410,14 @@ def main():
             print(msg)
             if msg == "Rematch denied!":
                 in_room = False
+            else:
+                # Resetting in preparation for new game
+                game = Game()
+                my_color = None
+                turn_color = None
+                turn = None
+                my_color_int = None
+                DRAW_STATE = -1
 
 
 def rss_path(relative_path):

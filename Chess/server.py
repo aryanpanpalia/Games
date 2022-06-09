@@ -61,6 +61,7 @@ class Room:
         in_room = True
         players = {"WHITE": self.player1, "BLACK": self.player2}
         colors = {self.player1: "WHITE", self.player2: "BLACK"}
+        other_player = {self.player1: self.player2, self.player2: self.player1}
 
         while in_room:
             game = Game()
@@ -90,59 +91,67 @@ class Room:
                 readable, _, _ = select.select([self.player1, self.player2], [], [], 1)
 
                 for player_sock in readable:
-                    if colors[player_sock] == turn_color:
-                        data, data_type = recv(player_sock)
-                        if data_type == "move":
-                            # Get and apply move
-                            move_string = data.decode("utf-8").lower()
-                            square_to_move_from = move_string[:2]
-                            square_to_move_to = move_string[2:4]
+                    data, data_type = recv(player_sock)
+                    if data_type == "move":
+                        # Get and apply move
+                        move_string = data.decode("utf-8").lower()
+                        square_to_move_from = move_string[:2]
+                        square_to_move_to = move_string[2:4]
 
-                            promotion_value = None
-                            if len(move_string) == 5:
-                                promotion_value = int(move_string[4])
+                        promotion_value = None
+                        if len(move_string) == 5:
+                            promotion_value = int(move_string[4])
 
-                            move = Move(
-                                initial_loc=Square.get_square(square_to_move_from),
-                                final_loc=Square.get_square(square_to_move_to),
-                                piece_moved=game.board.get(square_to_move_from),
-                                piece_captured=game.board.get(square_to_move_to),
-                                promotion=promotion_value
-                            )
-                            move = game.correct_en_passant(move)
-                            game.move(move)
+                        move = Move(
+                            initial_loc=Square.get_square(square_to_move_from),
+                            final_loc=Square.get_square(square_to_move_to),
+                            piece_moved=game.board.get(square_to_move_from),
+                            piece_captured=game.board.get(square_to_move_to),
+                            promotion=promotion_value
+                        )
+                        move = game.correct_en_passant(move)
+                        game.move(move)
 
-                            turn *= -1
-                            turn_color = "WHITE" if turn == WHITE else "BLACK"
+                        turn *= -1
+                        turn_color = "WHITE" if turn == WHITE else "BLACK"
 
-                            if game.check_if_game_ended() == CHECKMATE:
-                                game.moves[-1].mate = True
-                            elif turn == WHITE:
-                                if game.is_targeted(WHITE, game.board.black_king.square, check_if_exposes_king=False):
-                                    game.moves[-1].check = True
-                            elif turn == BLACK:
-                                if game.is_targeted(BLACK, game.board.white_king.square, check_if_exposes_king=False):
-                                    game.moves[-1].check = True
+                        if game.check_if_game_ended() == CHECKMATE:
+                            game.moves[-1].mate = True
+                        elif turn == WHITE:
+                            if game.is_targeted(WHITE, game.board.black_king.square, check_if_exposes_king=False):
+                                game.moves[-1].check = True
+                        elif turn == BLACK:
+                            if game.is_targeted(BLACK, game.board.white_king.square, check_if_exposes_king=False):
+                                game.moves[-1].check = True
 
-                            if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
-                                in_game = False
+                        if game.check_if_game_ended() == CHECKMATE or game.check_if_game_ended() == STALEMATE:
+                            in_game = False
 
-                            p1_game_state = {
-                                "in_game": in_game,
-                                "game": game,
-                                "player_color": colors[self.player1],
-                                "turn_color": turn_color
-                            }
+                        p1_game_state = {
+                            "in_game": in_game,
+                            "game": game,
+                            "player_color": colors[self.player1],
+                            "turn_color": turn_color
+                        }
 
-                            p2_game_state = {
-                                "in_game": in_game,
-                                "game": game,
-                                "player_color": colors[self.player2],
-                                "turn_color": turn_color
-                            }
+                        p2_game_state = {
+                            "in_game": in_game,
+                            "game": game,
+                            "player_color": colors[self.player2],
+                            "turn_color": turn_color
+                        }
 
-                            send(self.player1, pickle.dumps(p1_game_state), type_="gamestate")
-                            send(self.player2, pickle.dumps(p2_game_state), type_="gamestate")
+                        send(self.player1, pickle.dumps(p1_game_state), type_="gamestate")
+                        send(self.player2, pickle.dumps(p2_game_state), type_="gamestate")
+                    elif data_type == "draw_offer":
+                        send(other_player[player_sock], bytes("draw_offer", "utf-8"), type_="draw_offer")
+                    elif data_type == "draw_accept":
+                        send(other_player[player_sock], bytes("draw_accept", "utf-8"), type_="draw_accept")
+                        in_game = False
+                    elif data_type == "draw_reject":
+                        send(other_player[player_sock], bytes("draw_reject", "utf-8"), type_="draw_reject")
+
+
 
             p1_resp, _ = recv(self.player1)
             p2_resp, _ = recv(self.player2)
