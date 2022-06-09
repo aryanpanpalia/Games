@@ -106,15 +106,22 @@ def draw_reject_draw_button(x, y, width, height, win):
     win.blit(font.render(f"Reject draw", True, (200, 200, 200)), (x + 0.5 * width - 54, y + 0.5 * height - 12.5))
 
 
-def draw_resign_buttons(x, y, width, height, win):
+def draw_resign_button(x, y, width, height, win):
     font = pg.font.SysFont("bahnschrift", 20)
 
     resign_rect = pg.Rect(x, y, width, height)
     pg.draw.rect(win, (30, 30, 30), resign_rect)
 
     # text should start at start_x + 0.5 * box_width - 0.5 * text_width, start_y + 0.5 * box_height - 0.5 * text_height so that its centered with respect to function parameters
-    # text has width of 61 and height of 25 and needs to be centered in a box with (start_x, start_y, box_width, box_height) = (x + width / 2 + 5, y, width / 2 - 5, height)
-    win.blit(font.render(f"Resign", True, (200, 200, 200)), (x + 0.5 * width - 30.5, y + 0.5 * height - 12.5))
+    if RESIGN_STATE == 0:
+        # text has width of 61 and height of 25
+        win.blit(font.render(f"Resign", True, (200, 200, 200)), (x + 0.5 * width - 30.5, y + 0.5 * height - 12.5))
+    elif RESIGN_STATE == 1:
+        # text has width of 83 and height of 25
+        win.blit(font.render(f"Resigned", True, (200, 200, 200)), (x + 0.5 * width - 40, y + 0.5 * height - 12.5))
+    elif RESIGN_STATE == 2:
+        # text has width of 170 and height of 25
+        win.blit(font.render(f"Opponent resigned", True, (200, 200, 200)), (x + 0.5 * width - 85, y + 0.5 * height - 12.5))
 
 
 def render(win, game, perspective=WHITE):
@@ -129,7 +136,7 @@ def render(win, game, perspective=WHITE):
         draw_accept_draw_button(DRAW_ACCEPT_BUTTON_OFFSET_X, DRAW_ACCEPT_BUTTON_OFFSET_Y, DRAW_ACCEPT_BUTTON_WIDTH, DRAW_ACCEPT_BUTTON_HEIGHT, win)
         draw_reject_draw_button(DRAW_REJECT_BUTTON_OFFSET_X, DRAW_REJECT_BUTTON_OFFSET_Y, DRAW_REJECT_BUTTON_WIDTH, DRAW_REJECT_BUTTON_HEIGHT, win)
 
-    draw_resign_buttons(RESIGN_BUTTON_OFFSET_X, RESIGN_BUTTON_OFFSET_Y, RESIGN_BUTTON_WIDTH, RESIGN_BUTTON_HEIGHT, win)
+    draw_resign_button(RESIGN_BUTTON_OFFSET_X, RESIGN_BUTTON_OFFSET_Y, RESIGN_BUTTON_WIDTH, RESIGN_BUTTON_HEIGHT, win)
 
     pg.display.update()
 
@@ -172,9 +179,9 @@ def recv(sock: socket.socket) -> Tuple[bytes, str]:
 
 
 def update_from_server(sock: socket.socket):
-    global game, my_color, turn_color, turn, my_color_int, DRAW_STATE
+    global game, my_color, turn_color, turn, my_color_int, DRAW_STATE, RESIGN_STATE
     in_game = True
-    while in_game and DRAW_STATE != 2:
+    while in_game and DRAW_STATE != 2 and RESIGN_STATE == 0:
         readable, _, _ = select.select([sock], [], [], 1)
 
         if readable:
@@ -195,6 +202,9 @@ def update_from_server(sock: socket.socket):
                 in_game = False
             elif data_type == "draw_reject":
                 DRAW_STATE = -1
+            elif data_type == "resign":
+                RESIGN_STATE = 2
+                in_game = False
 
 
 def main():
@@ -250,7 +260,7 @@ def main():
             update_from_server_thread.start()
 
             while in_game:
-                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress, MOVE_LIST_SCROLL, DRAW_STATE
+                global game, my_color, turn_color, turn, my_color_int, square_to_move_from, square_to_move_to, promotion_value, move_in_progress, MOVE_LIST_SCROLL, DRAW_STATE, RESIGN_STATE
 
                 render(win, game, perspective=my_color_int)
                 pg.display.set_caption(f"Chess [{turn_color}]")
@@ -263,6 +273,9 @@ def main():
                     break
                 elif DRAW_STATE == 2:
                     print("Draw!")
+                    break
+                elif RESIGN_STATE == 2:
+                    print("Your opponent resigned!")
                     break
 
                 events = pg.event.get()
@@ -330,6 +343,14 @@ def main():
                                     DRAW_STATE == 1:
                                 DRAW_STATE = -1
                                 send(s, bytes("draw_reject", "utf-8"), type_="draw_reject")
+
+                            elif RESIGN_BUTTON_OFFSET_X < pos[0] < RESIGN_BUTTON_OFFSET_X + RESIGN_BUTTON_WIDTH and \
+                                    RESIGN_BUTTON_OFFSET_Y < pos[1] < RESIGN_BUTTON_OFFSET_Y + RESIGN_BUTTON_HEIGHT and \
+                                    RESIGN_STATE == 0:
+                                RESIGN_STATE = 1
+                                send(s, bytes("resign", "utf-8"), type_="resign")
+                                print("You resign!")
+                                in_game = False
 
                 if square_to_move_from and square_to_move_to and my_color_int == turn:
                     # Promotion
@@ -418,6 +439,7 @@ def main():
                 turn = None
                 my_color_int = None
                 DRAW_STATE = -1
+                RESIGN_STATE = 0
 
 
 def rss_path(relative_path):
@@ -471,6 +493,8 @@ if __name__ == '__main__':
     RESIGN_BUTTON_OFFSET_Y = MOVE_LIST_OFFSET_Y + MOVE_LIST_HEIGHT + 20
     RESIGN_BUTTON_WIDTH = 210
     RESIGN_BUTTON_HEIGHT = 50
+    # 0 = default, 1 = this player resigned, 2 = other player resigned
+    RESIGN_STATE = 0
 
     piece_images = {image[1]: pg.transform.smoothscale(pg.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 

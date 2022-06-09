@@ -150,8 +150,9 @@ class Room:
                         in_game = False
                     elif data_type == "draw_reject":
                         send(other_player[player_sock], bytes("draw_reject", "utf-8"), type_="draw_reject")
-
-
+                    elif data_type == "resign":
+                        send(other_player[player_sock], bytes("resign", "utf-8"), type_="resign")
+                        in_game = False
 
             p1_resp, _ = recv(self.player1)
             p2_resp, _ = recv(self.player2)
