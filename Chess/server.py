@@ -52,9 +52,11 @@ def recv(sock: socket.socket) -> Tuple[bytes, str]:
 
 
 class Room:
-    def __init__(self, host, code):
+    def __init__(self, host, code, host_username="Guest"):
         self.player1: socket.socket = host
         self.player2: socket.socket = None
+        self.player1_username = host_username
+        self.player2_username = "Guest"
         self.code: int = code
 
     def play(self):
@@ -67,6 +69,9 @@ class Room:
             game = Game()
             in_game = True
             turn = WHITE
+
+            send(self.player1, bytes(self.player2_username, "utf-8"), type_="opp_name")
+            send(self.player2, bytes(self.player1_username, "utf-8"), type_="opp_name")
 
             p1_game_state = {
                 "in_game": in_game,
@@ -184,12 +189,15 @@ class Room:
 
 
 def handle_new_connection(csock, addr):
+    username_bytes, _ = recv(csock)
+    username = username_bytes.decode("utf-8")
+
     response, _ = recv(csock)
     response = response.decode("utf-8").lower()
 
     if response == "create":
         new_room_code = random.choice([x for x in range(1, 10000) if x not in [room.code for room in rooms]])
-        new_room = Room(csock, new_room_code)
+        new_room = Room(csock, new_room_code, host_username=username)
         unfilled.append(new_room)
         rooms.append(new_room)
         send(csock, bytes(f"Your room code is {new_room_code}", "utf-8"))
@@ -209,6 +217,7 @@ def handle_new_connection(csock, addr):
         for room in unfilled:
             if int(response) == room.code:
                 room.player2 = csock
+                room.player2_username = username
 
                 unfilled.remove(room)
                 filled.append(room)

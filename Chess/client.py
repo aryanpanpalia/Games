@@ -2,7 +2,6 @@ import pickle
 import socket
 from typing import Tuple
 
-import model
 from model import *
 
 
@@ -81,6 +80,9 @@ def main():
 
         print("Welcome to Chess!")
 
+        player_name = input("Enter a username: ")
+        send(s, bytes(player_name, "utf-8"))
+
         response = ""
         while response.lower() not in ["create", "join"]:
             response = input("Enter whether you want to join or create a room [join, create]: ")
@@ -118,6 +120,8 @@ def main():
 
         in_room = True
         while in_room:
+            # catch sending of opponent name
+            opp_name, _ = recv(s)
             in_game = True
             while in_game:
                 data, datatype = recv(s)

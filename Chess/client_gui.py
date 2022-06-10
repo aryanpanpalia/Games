@@ -124,6 +124,14 @@ def draw_resign_button(x, y, width, height, win):
         win.blit(font.render(f"Opponent resigned", True, (200, 200, 200)), (x + 0.5 * width - 85, y + 0.5 * height - 12.5))
 
 
+def draw_player_names(win):
+    font = pg.font.SysFont("bahnschrift", 20)
+
+    # text has width of 61 and height of 25
+    win.blit(font.render(OPP_NAME, True, (200, 200, 200)), (25, 12.5))
+    win.blit(font.render(PLAYER_NAME, True, (200, 200, 200)), (25, 862.5))
+
+
 def render(win, game, perspective=WHITE):
     win.fill((60, 60, 60))
 
@@ -137,6 +145,7 @@ def render(win, game, perspective=WHITE):
         draw_reject_draw_button(DRAW_REJECT_BUTTON_OFFSET_X, DRAW_REJECT_BUTTON_OFFSET_Y, DRAW_REJECT_BUTTON_WIDTH, DRAW_REJECT_BUTTON_HEIGHT, win)
 
     draw_resign_button(RESIGN_BUTTON_OFFSET_X, RESIGN_BUTTON_OFFSET_Y, RESIGN_BUTTON_WIDTH, RESIGN_BUTTON_HEIGHT, win)
+    draw_player_names(win)
 
     pg.display.update()
 
@@ -179,7 +188,7 @@ def recv(sock: socket.socket) -> Tuple[bytes, str]:
 
 
 def update_from_server(sock: socket.socket):
-    global game, my_color, turn_color, turn, my_color_int, DRAW_STATE, RESIGN_STATE
+    global game, my_color, turn_color, turn, my_color_int, DRAW_STATE, RESIGN_STATE, OPP_NAME
     in_game = True
     while in_game and DRAW_STATE != 2 and RESIGN_STATE == 0:
         readable, _, _ = select.select([sock], [], [], 1)
@@ -205,6 +214,8 @@ def update_from_server(sock: socket.socket):
             elif data_type == "resign":
                 RESIGN_STATE = 2
                 in_game = False
+            elif data_type == "opp_name":
+                OPP_NAME = data.decode("utf-8")
 
 
 def main():
@@ -212,6 +223,10 @@ def main():
         s.connect((SERVER, PORT))
 
         print("Welcome to Chess!")
+
+        global PLAYER_NAME
+        PLAYER_NAME = input("Enter a username: ")
+        send(s, bytes(PLAYER_NAME, "utf-8"))
 
         response = ""
         while response.lower() not in ["create", "join"]:
@@ -495,6 +510,9 @@ if __name__ == '__main__':
     RESIGN_BUTTON_HEIGHT = 50
     # 0 = default, 1 = this player resigned, 2 = other player resigned
     RESIGN_STATE = 0
+
+    PLAYER_NAME = "Guest"
+    OPP_NAME = "Guest"
 
     piece_images = {image[1]: pg.transform.smoothscale(pg.image.load(rss_path(f'assets/{image}')), (100, 100)) for image in os.listdir(rss_path("assets"))}
 
