@@ -120,16 +120,20 @@ def main():
         while in_room:
             in_game = True
             while in_game:
-                _, _ = recv(s)
-                game, _ = recv(s)
-                game: model.Game = pickle.loads(game)
-
-                my_color, _ = recv(s)
-                my_color = my_color.decode("utf-8")
-
-                turn_color, _ = recv(s)
-                turn_color = turn_color.decode("utf-8")
-                turn = -1 if turn_color == "WHITE" else 1
+                data, datatype = recv(s)
+                if datatype == "gamestate":
+                    game_state = pickle.loads(data)
+                    in_game = game_state["in_game"]
+                    game = game_state["game"]
+                    my_color = game_state["player_color"]
+                    turn_color = game_state["turn_color"]
+                    turn = -1 if turn_color == "WHITE" else 1
+                elif datatype == "resign":
+                    # Added for compatibility with GUI version. This is the only feature that would affect the TUI client
+                    display(game, my_color)
+                    print("Your opponent resigned!")
+                    in_game = False
+                    continue
 
                 if game.check_if_game_ended() == CHECKMATE:
                     print("-" * 3, "GAME OVER", "-" * 3)
@@ -228,8 +232,7 @@ def main():
 
                     if game.check_if_game_ended():
                         # Server about to send game state again, but it is unnecessary
-                        for _ in range(4):
-                            _ = recv(s)
+                        _ = recv(s)
 
             response = input("Rematch [y, N]: ")
             while response.lower() not in ["", "y", "n"]:
