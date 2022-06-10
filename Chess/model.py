@@ -311,20 +311,21 @@ class Game:
             return False
 
         if check_if_exposes_king:
-            test_board = copy.deepcopy(self.board)
-            test_move = copy.deepcopy(move)
-
-            test_move.piece_moved = test_board.pieces[self.board.pieces.index(piece_moved)]
-            if piece_captured is not None:
-                test_move.piece_captured = test_board.pieces[self.board.pieces.index(piece_captured)]
-
-            test_board.apply_move(test_move)
+            test_game = copy.deepcopy(self)
+            test_move = Move(
+                initial_loc=initial_loc,
+                final_loc=final_loc,
+                piece_moved=test_game.board.get(initial_loc),
+                piece_captured=test_game.board.get(final_loc),
+            )
+            test_move = test_game.correct_en_passant(test_move)
+            test_game.move(test_move)
 
             if piece_moved.color == WHITE:
-                if self.is_targeted(BLACK, test_board.white_king.square, check_if_exposes_king=False):
+                if test_game.is_targeted(BLACK, test_game.board.white_king.square, check_if_exposes_king=False):
                     return False
             else:
-                if self.is_targeted(WHITE, test_board.black_king.square, check_if_exposes_king=False):
+                if self.is_targeted(WHITE, test_game.board.black_king.square, check_if_exposes_king=False):
                     return False
 
         if piece_moved.piece_type == PAWN:
